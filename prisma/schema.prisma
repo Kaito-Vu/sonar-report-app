@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  filename  String
+  status    String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  createdAt DateTime @default(now())
+  issues    Issue[]
+}
+
+model Issue {
+  id                    Int     @id @default(autoincrement())
+  message               String?
+  type                  String?
+  severity              String?
+  ruleKey               String?
+  ruleName              String?
+  fileName              String?
+  fileLine              Int?
+  impactMaintainability String?
+  impactReliability     String?
+  impactSecurity        String?
+
+  reportId              String
+  report                Report  @relation(fields: [reportId], references: [id])
+
+  @@index([reportId])
+}

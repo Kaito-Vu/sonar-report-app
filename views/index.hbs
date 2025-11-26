@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SonarQube Reports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+<h1 class="mb-4">SonarQube Regulation Reports</h1>
+
+<div class="card p-4 mb-5 shadow-sm">
+  <form action="/upload" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Chọn file báo cáo (.zip)</label>
+      <input type="file" name="file" class="form-control" required accept=".zip">
+    </div>
+    <button type="submit" class="btn btn-primary">Upload & Xử lý</button>
+  </form>
+</div>
+
+<h3>Lịch sử báo cáo</h3>
+<table class="table table-bordered mt-3">
+  <thead>
+  <tr>
+    <th>Ngày tạo</th>
+    <th>Tên file</th>
+    <th>Trạng thái</th>
+    <th>Hành động</th>
+  </tr>
+  </thead>
+  <tbody>
+  {{#each reports}}
+    <tr>
+      <td>{{this.createdAt}}</td>
+      <td>{{this.filename}}</td>
+      <td>
+                    <span class="badge {{#if (eq this.status 'COMPLETED')}}bg-success{{else}}bg-warning{{/if}}">
+                      {{this.status}}
+                    </span>
+      </td>
+      <td>
+        {{#if (eq this.status 'COMPLETED')}}
+          <a href="/report/{{this.id}}" class="btn btn-sm btn-info text-white">Xem chi tiết</a>
+        {{else}}
+          <button class="btn btn-sm btn-secondary" disabled>Đang xử lý...</button>
+        {{/if}}
+      </td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>
+</body>
+</html>
