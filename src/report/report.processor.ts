@@ -1,49 +1,54 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import * as AdmZip from 'adm-zip';
+import AdmZip from 'adm-zip';
 import * as fs from 'fs-extra';
-import * as csv from 'csv-parser';
+import csv from 'csv-parser';
 import * as path from 'path';
 import { PrismaService } from '../prisma.service';
+import { MinioService } from '../minio.service';
+import { Logger } from '@nestjs/common';
 
 @Processor('report-queue')
 export class ReportProcessor extends WorkerHost {
-  constructor(private prisma: PrismaService) {
-    super();
-  }
+  private readonly logger = new Logger(ReportProcessor.name);
+
+  // Định nghĩa thứ tự ưu tiên (Index càng nhỏ càng quan trọng)
+  private readonly SEVERITY_ORDER = ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO'];
+  private readonly TYPE_ORDER = ['VULNERABILITY', 'SECURITY_HOTSPOT', 'BUG', 'CODE_SMELL'];
+
+  constructor(private prisma: PrismaService, private minioService: MinioService) { super(); }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    const { filePath, originalName } = job.data;
-    const extractPath = `./extracted/${path.basename(filePath, '.zip')}`;
-
-    // 1. Tạo Report Record
-    const report = await this.prisma.report.create({
-      data: { filename: originalName, status: 'PROCESSING' },
-    });
+    const { reportId, fileKey, originalName } = job.data;
+    const tempDir = path.resolve('./temp_processing');
+    const zipFilePath = path.join(tempDir, fileKey);
+    const extractPath = path.join(tempDir, path.basename(fileKey, '.zip'));
 
     try {
-      console.log(`Start processing: ${originalName}`);
+      await this.prisma.report.update({ where: { id: reportId }, data: { status: 'PROCESSING' } });
+      await fs.ensureDir(tempDir);
+      await this.minioService.downloadFileToTemp(fileKey, zipFilePath);
 
-      // 2. Giải nén
-      const zip = new AdmZip(filePath);
+      const zip = new AdmZip(zipFilePath);
       zip.extractAllTo(extractPath, true);
 
-      // 3. Tìm file CSV mục tiêu (Đệ quy vì cấu trúc folder thay đổi)
-      const targetFile = 'open_findings_on_overall_code.csv';
-      const csvPath = await this.findFileRecursively(extractPath, targetFile);
+      const csvPath = await this.findFile(extractPath, 'open_findings_on_overall_code.csv');
+      if (!csvPath) throw new Error('CSV not found');
 
-      if (!csvPath) throw new Error('CSV file not found inside ZIP');
-
-      // 4. Stream & Batch Insert
       const issuesBatch = [];
-      const BATCH_SIZE = 2000;
-
       const stream = fs.createReadStream(csvPath).pipe(csv());
 
       for await (const row of stream) {
-        // Map dữ liệu từ CSV (dựa trên header file bạn gửi)
+        // --- TÍNH TOÁN INDEX ĐỂ SORT ---
+        let tIdx = this.TYPE_ORDER.indexOf(row['Type']);
+        if (tIdx === -1) tIdx = 99; // Không xác định thì đẩy xuống cuối
+
+        let sIdx = this.SEVERITY_ORDER.indexOf(row['Severity']);
+        if (sIdx === -1) sIdx = 99;
+        // -------------------------------
+
         issuesBatch.push({
-          reportId: report.id,
+          reportId,
           message: row['Message'],
           type: row['Type'],
           severity: row['Severity'],
@@ -51,54 +56,38 @@ export class ReportProcessor extends WorkerHost {
           ruleName: row['Rule Name'],
           fileName: row['File Name'],
           fileLine: row['File Line'] ? parseInt(row['File Line']) : 0,
-          impactMaintainability: row['Impact MAINTAINABILITY'],
-          impactReliability: row['Impact RELIABILITY'],
-          impactSecurity: row['Impact SECURITY'],
+
+          // Lưu giá trị index vào DB
+          typeIdx: tIdx,
+          severityIdx: sIdx
         });
 
-        if (issuesBatch.length >= BATCH_SIZE) {
+        if (issuesBatch.length >= 1000) {
           await this.prisma.issue.createMany({ data: issuesBatch });
-          issuesBatch.length = 0; // Clear mảng
+          issuesBatch.length = 0;
         }
       }
+      if (issuesBatch.length > 0) await this.prisma.issue.createMany({ data: issuesBatch });
 
-      // Insert phần còn lại
-      if (issuesBatch.length > 0) {
-        await this.prisma.issue.createMany({ data: issuesBatch });
-      }
-
-      // 5. Update Status
-      await this.prisma.report.update({
-        where: { id: report.id },
-        data: { status: 'COMPLETED' },
-      });
-      console.log(`Finished processing: ${originalName}`);
-
+      await this.prisma.report.update({ where: { id: reportId }, data: { status: 'COMPLETED' } });
     } catch (error) {
-      console.error(`Error processing ${originalName}:`, error);
-      await this.prisma.report.update({
-        where: { id: report.id },
-        data: { status: 'FAILED' }
-      });
+      this.logger.error(error.message);
+      await this.prisma.report.update({ where: { id: reportId }, data: { status: 'FAILED' } });
     } finally {
-      // 6. Cleanup
-      if (await fs.pathExists(filePath)) await fs.remove(filePath);
+      if (await fs.pathExists(zipFilePath)) await fs.remove(zipFilePath);
       if (await fs.pathExists(extractPath)) await fs.remove(extractPath);
     }
   }
 
-  // Hàm tìm file bất kể cấu trúc thư mục
-  private async findFileRecursively(dir: string, filename: string): Promise<string | null> {
+  private async findFile(dir, filename): Promise<string | null> {
     const files = await fs.readdir(dir);
     for (const file of files) {
       const fullPath = path.join(dir, file);
       const stat = await fs.stat(fullPath);
       if (stat.isDirectory()) {
-        const found = await this.findFileRecursively(fullPath, filename);
+        const found = await this.findFile(fullPath, filename);
         if (found) return found;
-      } else if (file === filename) {
-        return fullPath;
-      }
+      } else if (file === filename) return fullPath;
     }
     return null;
   }

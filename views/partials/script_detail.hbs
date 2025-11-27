@@ -1,0 +1,177 @@
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Khai báo Elements
+    const modal = document.getElementById('customModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const btnClose = document.getElementById('btnCloseModal');
+    const ruleContent = document.getElementById('ruleContent');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const manualKeySection = document.getElementById('manualKeySection');
+    const autoProjectKey = document.getElementById('autoProjectKey').value;
+
+    let currentFile = '';
+    let currentLine = 0;
+
+    // 2. Logic Đóng/Mở Modal
+    const toggleModal = (show) => {
+      if (show) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Khóa scroll body
+      } else {
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Mở scroll body
+      }
+    };
+
+    btnClose.addEventListener('click', () => toggleModal(false));
+    modalBackdrop.addEventListener('click', () => toggleModal(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleModal(false);
+    });
+
+    // 3. Logic Tabs (Chuyển tab)
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Reset active state
+        tabBtns.forEach(b => b.classList.remove('active-tab'));
+        tabContents.forEach(c => c.classList.add('hidden'));
+
+        // Set active state
+        btn.classList.add('active-tab');
+        document.getElementById(btn.dataset.target).classList.remove('hidden');
+      });
+    });
+
+    // 4. Sự kiện bấm nút FIX
+    const fixBtns = document.querySelectorAll('.btn-fix');
+
+    fixBtns.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ruleKey = btn.dataset.rule;
+        currentFile = btn.dataset.file;
+        currentLine = btn.dataset.line;
+
+        toggleModal(true);
+
+        // Reset về tab đầu tiên
+        tabBtns[0].click();
+
+        // Hiển thị loading
+        ruleContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-40 text-gray-500">
+                    <span class="iconify w-10 h-10 animate-spin mb-2 text-blue-500" data-icon="mdi:loading"></span>
+                    <p>Đang tải thông tin Rule...</p>
+                </div>`;
+        codeDisplay.innerHTML = '';
+        manualKeySection.classList.add('hidden');
+
+        // --- GỌI API LẤY RULE ---
+        try {
+          const res = await fetch(`/api/rule-details?key=${ruleKey}`);
+          const data = await res.json();
+
+          let content = '';
+          if (data.htmlDesc) {
+            content = data.htmlDesc;
+          } else if (data.name) {
+            // Xử lý External Rule
+            content = `
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-6">
+                            <h4 class="font-bold text-lg text-blue-800 mb-2">${data.name}</h4>
+                            <p class="text-blue-700">Đây là lỗi từ công cụ bên thứ 3 (External Rule). SonarQube không lưu trữ hướng dẫn chi tiết cho lỗi này.</p>
+                            <div class="mt-4">
+                                <a href="https://www.google.com/search?q=${ruleKey.split(':')[1] || data.name}" target="_blank" class="inline-flex items-center gap-1 bg-white border border-blue-200 px-4 py-2 rounded text-blue-600 hover:bg-blue-50 font-medium text-sm transition">
+                                    <span class="iconify" data-icon="mdi:google"></span> Tìm cách sửa trên Google
+                                </a>
+                            </div>
+                        </div>`;
+          } else {
+            content = '<div class="text-red-500">Không tìm thấy thông tin.</div>';
+          }
+
+          ruleContent.innerHTML = content;
+
+          // Highlight code blocks trong hướng dẫn
+          ruleContent.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+
+        } catch (err) {
+          console.error(err);
+          ruleContent.innerHTML = '<div class="text-red-500 p-4 border border-red-200 bg-red-50 rounded">Lỗi kết nối API Server.</div>';
+        }
+
+        // --- CHUẨN BỊ TAB CODE ---
+        if (autoProjectKey) {
+          fetchCode(autoProjectKey);
+        } else {
+          manualKeySection.classList.remove('hidden');
+          codeDisplay.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+                        <span class="iconify w-12 h-12 mb-2 text-gray-300" data-icon="mdi:code-tags-check"></span>
+                        <p>Chờ nhập Project Key...</p>
+                    </div>`;
+        }
+      });
+    });
+
+    // 5. Nút Tải Code Thủ công
+    document.getElementById('btnManualFetch').addEventListener('click', () => {
+      const key = document.getElementById('manualProjectKey').value.trim();
+      if (key) fetchCode(key);
+    });
+
+    // Hàm gọi API lấy Source Code
+    async function fetchCode(projectKey) {
+      codeDisplay.innerHTML = `
+            <div class="flex items-center justify-center h-40 text-gray-500 gap-2">
+                <span class="iconify animate-spin text-xl" data-icon="mdi:loading"></span> Đang tải Source Code...
+            </div>`;
+
+      try {
+        const url = `/api/source-code?project=${projectKey}&file=${encodeURIComponent(currentFile)}&line=${currentLine}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.snippet && Array.isArray(data.snippet)) {
+          let html = '';
+          data.snippet.forEach(srcLine => {
+            const isErrorLine = srcLine.line == currentLine;
+
+            // Style dòng lỗi: nền đỏ nhạt, border trái đỏ đậm
+            const lineStyle = isErrorLine
+              ? 'bg-red-50 border-l-4 border-red-500 font-bold text-gray-900'
+              : 'hover:bg-gray-50 border-l-4 border-transparent text-gray-600';
+
+            // Escape HTML để hiển thị an toàn
+            const safeCode = (srcLine.code || "")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+
+            html += `
+                        <div class="flex ${lineStyle} transition-colors">
+                            <div class="w-12 text-right pr-3 select-none py-1 bg-gray-50 border-r border-gray-100 text-xs text-gray-400 font-mono flex items-center justify-end">
+                                ${srcLine.line}
+                            </div>
+                            <div class="flex-1 whitespace-pre-wrap py-1 pl-3 font-mono text-xs break-all leading-5">${safeCode}</div>
+                        </div>`;
+          });
+          codeDisplay.innerHTML = `<div class="bg-white">${html}</div>`;
+        } else {
+          codeDisplay.innerHTML = `
+                    <div class="p-6 text-center">
+                        <div class="inline-block p-3 bg-red-50 rounded-full text-red-500 mb-2">
+                            <span class="iconify w-6 h-6" data-icon="mdi:file-search-outline"></span>
+                        </div>
+                        <h4 class="text-gray-800 font-bold">Không tìm thấy file</h4>
+                        <p class="text-sm text-gray-500 mt-1">Kiểm tra lại Project Key hoặc đường dẫn file: <br><code class="bg-gray-100 px-1 py-0.5 rounded">${currentFile}</code></p>
+                    </div>`;
+        }
+      } catch (err) {
+        codeDisplay.innerHTML = '<div class="text-red-500 p-4">Lỗi kết nối API lấy code.</div>';
+      }
+    }
+  });
+</script>

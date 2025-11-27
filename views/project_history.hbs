@@ -1,0 +1,116 @@
+{{!< layout}}
+
+<div class="flex justify-between items-center mb-6">
+  <div>
+    <a href="/" class="text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-1 text-sm"><span class="iconify" data-icon="mdi:arrow-left"></span> Trang chủ</a>
+    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+      <span class="iconify text-blue-600" data-icon="mdi:folder-open"></span>
+      {{project.name}}
+    </h2>
+    <p class="text-sm text-gray-500 font-mono flex items-center gap-1">Key: <span class="bg-gray-100 px-1 rounded">{{project.key}}</span></p>
+  </div>
+
+  <div class="flex gap-2">
+    <button onclick="syncProject({{project.id}})" class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm">
+      <span class="iconify" data-icon="mdi:cloud-sync"></span> Scan Mới
+    </button>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+    <span class="font-bold text-gray-700">Lịch sử Phân tích (Scan History)</span>
+    <span class="text-xs text-gray-500 flex items-center gap-1"><span id="loadingIcon" class="iconify animate-spin" data-icon="mdi:loading"></span> Auto Refresh</span>
+  </div>
+
+  <table class="w-full text-left text-sm text-gray-600">
+    <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
+    <tr>
+      <th class="px-6 py-3 w-48">Thời gian Scan</th>
+      <th class="px-6 py-3">Tên File / Source</th>
+      <th class="px-6 py-3 text-center w-32">Trạng thái</th>
+      <th class="px-6 py-3 text-right w-40">Thao tác</th>
+    </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100" id="reportTableBody">
+    {{#each reports}}
+      <tr class="hover:bg-gray-50 transition group">
+        <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">{{this.createdAt}}</td>
+        <td class="px-6 py-4 text-xs text-gray-500">{{this.filename}}</td>
+        <td class="px-6 py-4 text-center">
+          {{#if (eq this.status 'COMPLETED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Hoàn thành</span>
+          {{else}}{{#if (eq this.status 'FAILED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Lỗi</span>
+          {{else}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">{{this.status}} <span class="iconify animate-spin ml-1" data-icon="mdi:loading"></span></span>
+          {{/if}}{{/if}}
+        </td>
+        <td class="px-6 py-4 text-right">
+          <div class="flex items-center justify-end gap-3">
+            {{#if (eq this.status 'COMPLETED')}}
+              <a href="/report/{{this.id}}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline flex items-center gap-1">
+                Xem kết quả <span class="iconify" data-icon="mdi:arrow-right"></span>
+              </a>
+            {{/if}}
+            <button onclick="deleteReport('{{this.id}}')" class="text-gray-400 hover:text-red-600 transition" title="Xóa"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
+          </div>
+        </td>
+      </tr>
+    {{/each}}
+    </tbody>
+  </table>
+
+  {{#unless reports}}
+    <div class="text-center py-12 text-gray-400">
+      <span class="iconify w-12 h-12 mx-auto mb-2 text-gray-200" data-icon="mdi:history"></span>
+      <p>Dự án này chưa có lần scan nào.</p>
+    </div>
+  {{/unless}}
+</div>
+
+<script>
+  const projectId = {{project.id}};
+
+  async function syncProject(id) {
+    if(!confirm(`Quét ngay bây giờ?`)) return;
+    try {
+      await fetch(`/projects/${id}/sync`, { method: 'POST' });
+      updateTable();
+    } catch(e) { alert('Lỗi.'); }
+  }
+
+  async function deleteReport(id) {
+    if(!confirm("Xóa bản scan này?")) return;
+    await fetch(`/api/report/${id}`, { method: 'DELETE' });
+    updateTable();
+  }
+
+  function updateTable() {
+    const tbody = document.getElementById('reportTableBody');
+    const icon = document.getElementById('loadingIcon');
+    icon.classList.remove('text-gray-300'); icon.classList.add('text-blue-500');
+
+    fetch(`/api/project/${projectId}/reports`)
+      .then(res => res.json())
+      .then(data => {
+        let html = '';
+        data.forEach(r => {
+          const status = r.status === 'COMPLETED' ? '<span class="text-green-600 bg-green-50 px-2 py-0.5 rounded text-xs font-bold">Hoàn thành</span>' :
+            (r.status === 'FAILED' ? '<span class="text-red-600 bg-red-50 px-2 py-0.5 rounded text-xs font-bold">Lỗi</span>' :
+              `<span class="text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded text-xs font-bold">${r.status} <span class="iconify animate-spin" data-icon="mdi:loading"></span></span>`);
+
+          const btn = r.status === 'COMPLETED' ? `<a href="/report/${r.id}" class="text-blue-600 font-bold hover:underline flex items-center justify-end gap-1">Xem kết quả <span class="iconify" data-icon="mdi:arrow-right"></span></a>` : '';
+
+          html += `
+                        <tr class="hover:bg-gray-50 transition group">
+                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-medium">${new Date(r.createdAt).toLocaleString('vi-VN')}</td>
+                            <td class="px-6 py-4 text-xs text-gray-500">${r.filename}</td>
+                            <td class="px-6 py-4 text-center">${status}</td>
+                            <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-3">${btn}<button onclick="deleteReport('${r.id}')" class="text-gray-400 hover:text-red-600 transition"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button></div></td>
+                        </tr>`;
+        });
+        if(html) tbody.innerHTML = html;
+      })
+      .finally(() => { icon.classList.add('text-gray-300'); icon.classList.remove('text-blue-500'); });
+  }
+
+  setInterval(updateTable, 5000);
+</script>

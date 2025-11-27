@@ -1,0 +1,146 @@
+{{!< layout}}
+
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+    <span class="iconify text-blue-600" data-icon="mdi:view-dashboard"></span>
+    Danh sách Dự án
+  </h2>
+  <div class="flex gap-2">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm" onclick="document.getElementById('addProjectForm').scrollIntoView({behavior: 'smooth'})">
+      + Thêm Dự Án
+    </button>
+    <a href="/settings" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium border border-gray-200">
+      <span class="iconify" data-icon="mdi:cog"></span> Cấu hình
+    </a>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+  <table class="w-full text-left text-sm text-gray-600">
+    <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
+    <tr>
+      <th class="px-6 py-4">Tên Dự Án</th>
+      <th class="px-6 py-4">Sonar Project Key (Technical ID)</th>
+      <th class="px-6 py-4">Lần Scan Cuối</th>
+      <th class="px-6 py-4 text-center">Trạng thái</th>
+      <th class="px-6 py-4 text-right">Thao tác</th>
+    </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+    {{#each projects}}
+      <tr class="hover:bg-gray-50 transition group">
+        <td class="px-6 py-4">
+          <a href="/project/{{this.id}}" class="font-bold text-gray-900 hover:text-blue-600 text-base flex items-center gap-2">
+            <span class="iconify text-gray-400 group-hover:text-blue-500" data-icon="mdi:folder-outline"></span>
+            {{this.name}}
+          </a>
+        </td>
+
+        <td class="px-6 py-4">
+                    <span class="font-mono text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 select-all block max-w-[300px] truncate" title="{{this.key}}">
+                      {{this.key}}
+                    </span>
+        </td>
+
+        <td class="px-6 py-4 text-xs">
+          {{#if this.lastScan}}
+            <div class="flex items-center gap-1 text-gray-700">
+              <span class="iconify" data-icon="mdi:clock-outline"></span> {{this.lastScan}}
+            </div>
+          {{else}}
+            <span class="text-gray-400 italic">Chưa có dữ liệu</span>
+          {{/if}}
+        </td>
+
+        <td class="px-6 py-4 text-center">
+          {{#if this.lastStatus}}
+            {{#if (eq this.lastStatus 'COMPLETED')}}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Hoàn thành</span>
+            {{else}}{{#if (eq this.lastStatus 'FAILED')}}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Lỗi</span>
+            {{else}}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                {{this.lastStatus}} <span class="iconify animate-spin ml-1" data-icon="mdi:loading"></span>
+                            </span>
+            {{/if}}{{/if}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td class="px-6 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="syncProject({{this.id}}, '{{this.name}}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition flex items-center gap-1 text-xs font-bold shadow-sm">
+              <span class="iconify" data-icon="mdi:cloud-sync"></span> Sync
+            </button>
+            <form action="/projects/delete" method="post" onsubmit="return confirm('Bạn có chắc muốn xóa dự án này?');" class="inline">
+              <input type="hidden" name="id" value="{{this.id}}">
+              <button class="text-gray-400 hover:text-red-600 p-2 rounded hover:bg-red-50 transition" title="Xóa dự án">
+                <span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    {{/each}}
+    </tbody>
+  </table>
+  {{#unless projects}}
+    <div class="text-center py-16">
+      <span class="iconify w-16 h-16 mx-auto mb-4 text-gray-300" data-icon="mdi:folder-open-outline"></span>
+      <p class="text-gray-500 mb-4">Chưa có dự án nào.</p>
+    </div>
+  {{/unless}}
+</div>
+
+<div id="addProjectForm" class="bg-gray-50 p-6 rounded-xl border border-gray-200 max-w-2xl mx-auto">
+  <h3 class="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2">
+    <span class="iconify text-blue-600" data-icon="mdi:plus-circle"></span> Thêm Dự Án Mới
+  </h3>
+  <form action="/projects" method="post" class="space-y-4">
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Tên hiển thị (Project Name)</label>
+      <input type="text" name="name" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Hệ thống Quản lý" required>
+    </div>
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">SonarQube Project Key <span class="text-red-500">*</span></label>
+      <input type="text" name="key" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm bg-white" placeholder="VD: etc_bca_c10_c10-pms_..." required>
+      <p class="text-xs text-blue-600 mt-1">
+        <span class="iconify inline" data-icon="mdi:information-outline"></span>
+        Lấy chính xác giá trị <b>Project Key</b> trong file PDF báo cáo hoặc trên giao diện SonarQube (thường là chuỗi dài).
+      </p>
+    </div>
+    <div class="flex justify-end pt-2">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2">
+        <span class="iconify" data-icon="mdi:check"></span> Tạo Dự Án
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  async function syncProject(id, name) {
+    if(!confirm(`Bắt đầu đồng bộ báo cáo cho dự án "${name}"?`)) return;
+
+    document.body.style.cursor = 'wait';
+    try {
+      const res = await fetch(`/projects/${id}/sync`, { method: 'POST' });
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.skipped) {
+          alert('Thông báo: ' + data.message);
+        } else {
+          alert('✅ Đã gửi lệnh Sync thành công! Chuyển hướng đến lịch sử...');
+          window.location.href = `/project/${id}`;
+        }
+      } else {
+        alert('❌ Lỗi: ' + data.message);
+      }
+    } catch (e) {
+      alert('Lỗi kết nối server.');
+    } finally {
+      document.body.style.cursor = 'default';
+    }
+  }
+</script>

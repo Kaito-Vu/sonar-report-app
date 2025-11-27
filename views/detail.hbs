@@ -1,34 +1,312 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Report Detail</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container-fluid py-4">
-<a href="/" class="btn btn-outline-secondary mb-3">&larr; Quay lại</a>
-<h2>Chi tiết báo cáo: {{report.filename}}</h2>
+{{!< layout}}
 
-<table class="table table-striped table-hover mt-3 table-sm">
-  <thead class="table-dark">
-  <tr>
-    <th>Severity</th>
-    <th>Rule Name</th>
-    <th>File Name</th>
-    <th>Line</th>
-    <th>Message</th>
-  </tr>
-  </thead>
-  <tbody>
-  {{#each report.issues}}
-    <tr>
-      <td><span class="badge bg-secondary">{{this.severity}}</span></td>
-      <td>{{this.ruleName}}</td>
-      <td class="text-break" style="max-width: 300px;">{{this.fileName}}</td>
-      <td>{{this.fileLine}}</td>
-      <td>{{this.message}}</td>
-    </tr>
-  {{/each}}
-  </tbody>
-</table>
-</body>
-</html>
+<div class="h-full flex flex-col p-4 space-y-4">
+
+  <div class="flex-none space-y-4">
+
+    <div class="flex justify-between items-center">
+      <div>
+        <a href="/" class="text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-1 text-sm transition">
+          <span class="iconify" data-icon="mdi:arrow-left"></span> Quay lại danh sách
+        </a>
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <span class="iconify text-purple-600" data-icon="mdi:file-document-outline"></span>
+          Chi tiết báo cáo
+        </h2>
+        <div class="flex items-center gap-2 mt-1 text-sm text-gray-600">
+          <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100 font-mono text-xs font-bold">{{report.filename}}</span>
+          <span class="text-gray-300">|</span>
+          <span>Dự án: <b>{{#if report.project}}{{report.project.name}}{{else}}<span class="text-red-500 italic">Chưa gán</span>{{/if}}</b></span>
+        </div>
+
+        <input type="hidden" id="autoProjectKey" value="{{report.project.key}}">
+        <input type="hidden" id="currentSortBy" value="{{sort.by}}">
+        <input type="hidden" id="currentSortOrder" value="{{sort.order}}">
+      </div>
+
+      <div class="flex gap-2">
+        <a href="/report/{{report.id}}/export?type=html" target="_blank" class="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 px-4 py-2 rounded-lg font-medium transition shadow-sm text-sm">
+          <span class="iconify text-lg" data-icon="mdi:language-html5"></span> HTML
+        </a>
+        <a href="/report/{{report.id}}/export?type=pdf" target="_blank" class="flex items-center gap-2 bg-red-600 border border-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg font-medium transition shadow-sm text-sm">
+          <span class="iconify text-lg" data-icon="mdi:file-pdf-box"></span> PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
+        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 font-bold text-sm text-gray-700 flex items-center gap-2">
+          <span class="iconify text-blue-600" data-icon="mdi:chart-pie"></span> Thống kê theo Loại (Type)
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <tbody class="divide-y divide-gray-100">
+            {{#each stats.byType}}
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2 font-medium" style="color: {{this.color}}">{{this.label}}</td>
+                <td class="px-4 py-2 text-right font-bold text-gray-800">{{this.count}}</td>
+              </tr>
+            {{/each}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
+        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 font-bold text-sm text-gray-700 flex items-center gap-2">
+          <span class="iconify text-red-600" data-icon="mdi:alert-circle-outline"></span> Thống kê theo Mức độ (Severity)
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <tbody class="divide-y divide-gray-100">
+            {{#each stats.bySeverity}}
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2 font-medium" style="color: {{this.color}}">{{this.label}}</td>
+                <td class="px-4 py-2 text-right font-bold text-gray-800">{{this.count}}</td>
+              </tr>
+            {{/each}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-0 overflow-hidden">
+
+    <div class="flex-1 overflow-y-auto scroll-smooth">
+      <table class="w-full text-left text-sm text-gray-600 border-collapse table-fixed">
+        <thead class="bg-gray-800 text-white uppercase text-xs font-semibold tracking-wider sticky top-0 z-10 shadow-sm">
+        <tr>
+          <th class="px-4 py-3 w-32 bg-gray-800 cursor-pointer hover:bg-gray-700 transition sort-header" data-sort="type">
+            <div class="flex items-center gap-1">Type <span class="iconify text-gray-400 sort-icon" data-col="type" data-icon="mdi:unfold-more-horizontal"></span></div>
+          </th>
+          <th class="px-4 py-3 text-center w-28 bg-gray-800 cursor-pointer hover:bg-gray-700 transition sort-header" data-sort="severity">
+            <div class="flex items-center justify-center gap-1">Severity <span class="iconify text-gray-400 sort-icon" data-col="severity" data-icon="mdi:unfold-more-horizontal"></span></div>
+          </th>
+          <th class="px-4 py-3 w-48 bg-gray-800 cursor-pointer hover:bg-gray-700 transition sort-header" data-sort="ruleKey">
+            <div class="flex items-center gap-1">Rule Key <span class="iconify text-gray-400 sort-icon" data-col="ruleKey" data-icon="mdi:unfold-more-horizontal"></span></div>
+          </th>
+          <th class="px-4 py-3 w-1/4 bg-gray-800 cursor-pointer hover:bg-gray-700 transition sort-header" data-sort="fileName">
+            <div class="flex items-center gap-1">File Path <span class="iconify text-gray-400 sort-icon" data-col="fileName" data-icon="mdi:unfold-more-horizontal"></span></div>
+          </th>
+          <th class="px-4 py-3 text-center w-20 bg-gray-800 cursor-pointer hover:bg-gray-700 transition sort-header" data-sort="fileLine">Line</th>
+          <th class="px-4 py-3 bg-gray-800">Message</th>
+          <th class="px-4 py-3 text-center w-28 bg-gray-900 border-l border-gray-700">Thao tác</th>
+        </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-100">
+        {{#if issues.length}}
+          {{#each issues}}
+            <tr class="hover:bg-blue-50/50 transition group">
+
+              <td class="px-4 py-3 align-top">
+                {{#if (eq this.type 'BUG')}}
+                  <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100"><span class="iconify" data-icon="mdi:bug"></span> BUG</span>
+                {{else}}{{#if (eq this.type 'VULNERABILITY')}}
+                  <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-100"><span class="iconify" data-icon="mdi:lock-open-alert"></span> VULN</span>
+                {{else}}{{#if (eq this.type 'SECURITY_HOTSPOT')}}
+                  <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100"><span class="iconify" data-icon="mdi:eye-circle"></span> HOTSPOT</span>
+                {{else}}{{#if (eq this.type 'CODE_SMELL')}}
+                  <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100"><span class="iconify" data-icon="mdi:code-braces"></span> SMELL</span>
+                {{else}}
+                  <span class="badge bg-gray-100">{{this.type}}</span>
+                {{/if}}{{/if}}{{/if}}{{/if}}
+              </td>
+
+              <td class="px-4 py-3 text-center align-top">
+                                <span class="inline-block px-2 py-1 rounded text-[10px] font-bold border
+                                    {{#if (eq this.severity 'BLOCKER')}}bg-red-100 text-red-800 border-red-200
+                                    {{else}}{{#if (eq this.severity 'CRITICAL')}}bg-orange-100 text-orange-800 border-orange-200
+                                    {{else}}{{#if (eq this.severity 'MAJOR')}}bg-pink-100 text-pink-800 border-pink-200
+                                    {{else}}bg-gray-100 text-gray-800 border-gray-200{{/if}}{{/if}}{{/if}}">
+                                  {{this.severity}}
+                                </span>
+              </td>
+
+              <td class="px-4 py-3 align-top">
+                <div class="flex flex-col">
+                  {{#if this.ruleName}}
+                    <span class="text-xs font-semibold text-gray-800 mb-1 line-clamp-2" title="{{this.ruleName}}">{{this.ruleName}}</span>
+                  {{/if}}
+                  <span class="font-mono text-[10px] text-gray-500 break-all">{{this.ruleKey}}</span>
+                </div>
+              </td>
+
+              <td class="px-4 py-3 align-top">
+                <div class="text-xs text-gray-500 break-all leading-relaxed font-mono" title="{{this.fileName}}">{{this.fileName}}</div>
+              </td>
+
+              <td class="px-4 py-3 text-center align-top font-bold text-gray-400 font-mono">
+                {{#if (eq this.fileLine 0)}}-{{else}}{{this.fileLine}}{{/if}}
+              </td>
+
+              <td class="px-4 py-3 align-top">
+                <div class="text-gray-900 break-words leading-snug min-w-[200px]">{{this.message}}</div>
+              </td>
+
+              <td class="px-4 py-3 text-center align-top border-l border-gray-100 bg-gray-50/30">
+                <button class="btn-fix bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded shadow-sm transition text-xs font-bold flex items-center justify-center gap-1 w-full group-hover:border-blue-400"
+                        data-rule="{{this.ruleKey}}"
+                        data-file="{{this.fileName}}"
+                        data-line="{{this.fileLine}}">
+                  <span class="iconify w-4 h-4" data-icon="mdi:wrench-outline"></span> Fix
+                </button>
+              </td>
+            </tr>
+          {{/each}}
+        {{else}}
+          <tr>
+            <td colspan="7" class="p-12 text-center text-gray-400">
+              <span class="iconify w-12 h-12 mx-auto mb-2 text-gray-200" data-icon="mdi:file-search-outline"></span>
+              <p>Không có dữ liệu hiển thị.</p>
+            </td>
+          </tr>
+        {{/if}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex-none bg-gray-50 border-t border-gray-200 px-6 py-3 flex flex-wrap gap-4 items-center justify-between text-sm text-gray-600 z-20">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span>Hiển thị</span>
+          <select id="pageSizeSelect" class="border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium cursor-pointer text-xs">
+            {{#each pagination.pageSizeOptions}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>
+            {{/each}}
+          </select>
+          <span>dòng</span>
+        </div>
+        <div class="h-4 w-px bg-gray-300"></div>
+        <div>Tổng: <b class="text-gray-900">{{pagination.total}}</b> lỗi</div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="javascript:void(0)" onclick="changePage({{pagination.prevPage}})"
+           class="px-2 py-1 rounded border bg-white hover:bg-gray-100 {{#unless pagination.hasPrev}}pointer-events-none opacity-50{{/unless}}">
+          <span class="iconify" data-icon="mdi:chevron-left"></span>
+        </a>
+
+        <div class="flex items-center gap-1">
+          <input type="number" id="pageInput" value="{{pagination.page}}" min="1" max="{{pagination.totalPages}}"
+                 class="w-12 border border-gray-300 rounded px-1 py-1 text-center font-bold text-blue-600 text-xs outline-none">
+          <span>/ {{pagination.totalPages}}</span>
+        </div>
+
+        <button id="btnGoPage" class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-xs font-bold">ĐI</button>
+
+        <a href="javascript:void(0)" onclick="changePage({{pagination.nextPage}})"
+           class="px-2 py-1 rounded border bg-white hover:bg-gray-100 {{#unless pagination.hasNext}}pointer-events-none opacity-50{{/unless}}">
+          <span class="iconify" data-icon="mdi:chevron-right"></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="customModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center">
+  <div id="modalBackdrop" class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm cursor-pointer"></div>
+  <div class="relative bg-white w-full max-w-6xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+    <div class="flex justify-between items-center px-6 py-4 bg-gray-50 border-b border-gray-200">
+      <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
+        <span class="iconify text-green-600 w-6 h-6" data-icon="mdi:shield-check"></span>
+        Hướng dẫn khắc phục
+      </h3>
+      <button id="btnCloseModal" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition focus:outline-none">
+        <span class="iconify w-6 h-6" data-icon="mdi:close"></span>
+      </button>
+    </div>
+
+    <div class="flex border-b border-gray-200 bg-white">
+      <button class="tab-btn flex-1 py-4 text-sm font-bold text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition border-b-2 border-transparent active-tab flex justify-center items-center gap-2"
+              data-target="tab-rule">
+        <span class="iconify w-5 h-5" data-icon="mdi:book-open-page-variant-outline"></span> Why & How
+      </button>
+      <button class="tab-btn flex-1 py-4 text-sm font-bold text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition border-b-2 border-transparent flex justify-center items-center gap-2"
+              data-target="tab-code">
+        <span class="iconify w-5 h-5" data-icon="mdi:code-tags"></span> Source Code
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto bg-gray-50 relative">
+      <div id="tab-rule" class="tab-content block p-8 bg-white min-h-full">
+        <div id="ruleContent" class="prose max-w-none text-sm text-gray-800 leading-relaxed">Loading...</div>
+      </div>
+      <div id="tab-code" class="tab-content hidden p-6">
+        <div id="manualKeySection" class="hidden mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-4 shadow-sm">
+          <div class="text-yellow-600 bg-yellow-100 p-2 rounded-full"><span class="iconify w-6 h-6" data-icon="mdi:alert-circle-outline"></span></div>
+          <div class="flex-1">
+            <h4 class="text-sm font-bold text-yellow-900">Chưa liên kết Project Key</h4>
+            <p class="text-xs text-yellow-700 mt-1">Nhập Project Key thủ công để tải code:</p>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" id="manualProjectKey" placeholder="VD: project-backend" class="border border-yellow-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 w-48 font-mono">
+            <button id="btnManualFetch" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1.5 rounded text-sm font-bold transition shadow-sm">Tải Code</button>
+          </div>
+        </div>
+        <div id="codeDisplay" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden font-mono text-sm min-h-[200px]"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .active-tab {
+    border-bottom-color: #2563eb !important;
+    color: #2563eb !important;
+    background-color: #ffffff;
+  }
+</style>
+
+{{> script_detail }}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Setup Status
+    const currentSortBy = document.getElementById('currentSortBy').value;
+    const currentSortOrder = document.getElementById('currentSortOrder').value;
+
+    // 2. Reload Function
+    window.reloadPage = (params) => {
+      const url = new URL(window.location.href);
+      for (const key in params) { url.searchParams.set(key, params[key]); }
+      window.location.href = url.toString();
+    };
+
+    // 3. Highlight Sort Icon
+    const sortIcon = document.querySelector(`.sort-icon[data-col="${currentSortBy}"]`);
+    if (sortIcon) {
+      sortIcon.classList.remove('text-gray-400');
+      sortIcon.classList.add('text-blue-400');
+      sortIcon.setAttribute('data-icon', currentSortOrder === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down');
+      sortIcon.closest('th').classList.add('bg-gray-700');
+    }
+
+    // 4. Handle Header Click
+    document.querySelectorAll('.sort-header').forEach(th => {
+      th.addEventListener('click', () => {
+        const column = th.dataset.sort;
+        let newOrder = 'asc';
+        if (column === currentSortBy) { newOrder = currentSortOrder === 'asc' ? 'desc' : 'asc'; }
+        reloadPage({ sortBy: column, sortOrder: newOrder, page: 1 });
+      });
+    });
+
+    // 5. Handle Pagination
+    window.changePage = (page) => reloadPage({ page: page });
+    document.getElementById('pageSizeSelect').addEventListener('change', (e) => reloadPage({ pageSize: e.target.value, page: 1 }));
+
+    const handleGo = () => {
+      let p = parseInt(document.getElementById('pageInput').value);
+      const max = parseInt(document.getElementById('pageInput').getAttribute('max'));
+      if(p < 1) p = 1; if(p > max) p = max;
+      reloadPage({ page: p });
+    };
+    document.getElementById('btnGoPage').addEventListener('click', handleGo);
+    document.getElementById('pageInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleGo(); });
+  });
+</script>

@@ -1,0 +1,44 @@
+<body>
+<div class="container">
+  <div style="display: flex; gap: 30px; margin-bottom: 30px; page-break-inside: avoid;">
+    <div style="flex: 1;">
+      <h3 style="border-bottom: 2px solid #ccc; font-size: 14px;">THỐNG KÊ THEO LOẠI (TYPE)</h3>
+      <table style="width: 100%; margin-top:5px;">
+        {{#each stats.byType}}
+          <tr>
+            <td style="color:{{this.color}}; font-weight:bold;">{{this.label}}</td>
+            <td style="text-align:right; font-weight:bold;">{{this.count}}</td>
+          </tr>
+        {{/each}}
+      </table>
+    </div>
+    <div style="flex: 1;">
+      <h3 style="border-bottom: 2px solid #ccc; font-size: 14px;">THỐNG KÊ THEO MỨC ĐỘ (SEVERITY)</h3>
+      <table style="width: 100%; margin-top:5px;">
+        {{#each stats.bySeverity}}
+          <tr>
+            <td style="color:{{this.color}}; font-weight:bold;">{{this.label}}</td>
+            <td style="text-align:right; font-weight:bold;">{{this.count}}</td>
+          </tr>
+        {{/each}}
+      </table>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+    <tr>
+      <th>Type</th>
+      <th>Severity</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{#each issues}}
+      <tr>
+        <td><span class="badge" style="color: #fff; background: #555;">{{this.type}}</span></td>
+      </tr>
+    {{/each}}
+    </tbody>
+  </table>
+</div>
+</body>
