@@ -22,7 +22,7 @@ import { SonarService } from '../sonar.service';
 export class ReportController {
   private readonly logger = new Logger(ReportController.name);
 
-  // Config Sort & Stats
+  // Cấu hình Thứ tự & Màu sắc
   private readonly TYPE_ORDER = ['VULNERABILITY', 'SECURITY_HOTSPOT', 'BUG', 'CODE_SMELL'];
   private readonly SEVERITY_ORDER = ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO'];
 
@@ -34,11 +34,11 @@ export class ReportController {
   ];
 
   private readonly SEVERITY_CONFIG = [
-    { key: 'BLOCKER', color: '#dc2626' },
-    { key: 'CRITICAL', color: '#ea580c' },
-    { key: 'MAJOR', color: '#be185d' },
-    { key: 'MINOR', color: '#000000' },
-    { key: 'INFO', color: '#6b7280' }
+    { key: 'BLOCKER', color: '#dc2626', label: 'BLOCKER' },
+    { key: 'CRITICAL', color: '#ea580c', label: 'CRITICAL' },
+    { key: 'MAJOR', color: '#be185d', label: 'MAJOR' },
+    { key: 'MINOR', color: '#000000', label: 'MINOR' },
+    { key: 'INFO', color: '#6b7280', label: 'INFO' }
   ];
 
   constructor(
@@ -48,7 +48,7 @@ export class ReportController {
     private sonarService: SonarService
   ) {}
 
-  // --- HELPER ---
+  // --- HELPER: TÍNH TOÁN THỐNG KÊ ---
   private async getStatistics(reportId: string) {
     const [bySev, byType] = await Promise.all([
       this.prisma.issue.groupBy({ by: ['severity'], where: { reportId }, _count: { _all: true } }),
@@ -74,7 +74,7 @@ export class ReportController {
   }
 
   // ==================================================================
-  // 1. DASHBOARD (DANH SÁCH DỰ ÁN)
+  // 1. TRANG CHỦ (DASHBOARD & PROJECT LIST)
   // ==================================================================
   @Get()
   @Render('index')
@@ -83,26 +83,45 @@ export class ReportController {
       orderBy: { name: 'asc' },
       include: {
         reports: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-          where: { status: { not: 'DELETED' } }
+          take: 1, orderBy: { createdAt: 'desc' }, where: { status: { not: 'DELETED' } }
         }
       }
     });
 
     const projectsView = projects.map(p => ({
-      id: p.id,
-      name: p.name,
-      key: p.key, // Đây chính là cái key dài ngoằng
-      lastScan: p.reports[0] ? p.reports[0].createdAt.toLocaleString('vi-VN') : 'Chưa có',
+      id: p.id, name: p.name, key: p.key,
+      lastScan: p.reports[0] ? (p.reports[0].analysisDate?.toLocaleString('vi-VN') || p.reports[0].createdAt.toLocaleString('vi-VN')) : 'Chưa có',
       lastStatus: p.reports[0] ? p.reports[0].status : null
     }));
-
     return { projects: projectsView };
   }
 
+  @Post('projects')
+  async createProject(@Body() body: { name: string; key: string }, @Res() res: Response) {
+    try {
+      if (!body.name || !body.key) throw new Error('Missing info');
+      await this.prisma.project.create({ data: { name: body.name, key: body.key.trim() } });
+      return res.redirect('/');
+    } catch (error) {
+      this.logger.error(error.message);
+      return res.redirect('/');
+    }
+  }
+
+  @Post('projects/delete')
+  async deleteProject(@Body() body: { id: string }, @Res() res: Response) {
+    try {
+      await this.prisma.$transaction([
+        this.prisma.issue.deleteMany({ where: { report: { projectId: parseInt(body.id) } } }),
+        this.prisma.report.deleteMany({ where: { projectId: parseInt(body.id) } }),
+        this.prisma.project.delete({ where: { id: parseInt(body.id) } })
+      ]);
+    } catch (e) {}
+    return res.redirect('/');
+  }
+
   // ==================================================================
-  // 2. CHI TIẾT DỰ ÁN (LỊCH SỬ SCAN)
+  // 2. CHI TIẾT DỰ ÁN (SCAN HISTORY & MAPPING)
   // ==================================================================
   @Get('project/:id')
   @Render('project_history')
@@ -114,59 +133,54 @@ export class ReportController {
     let sonarAnalyses = [];
     let apiError = null;
 
-    // A. Lấy lịch sử từ SonarQube bằng KEY (Trim để xóa khoảng trắng thừa)
     try {
       sonarAnalyses = await this.sonarService.getProjectAnalyses(project.key.trim());
-    } catch (e) {
-      apiError = e.message;
-    }
+    } catch (e) { apiError = e.message; }
 
-    // B. Lấy danh sách local
     const localReports = await this.prisma.report.findMany({
       where: { projectId: projectId, status: { not: 'DELETED' } }
     });
 
-    // C. Ghép dữ liệu
     const history = sonarAnalyses.map(scan => {
-      const local = localReports.find(r => r.analysisKey === scan.key);
+      const local = localReports.find(r => r.analysisKey && r.analysisKey.trim() === scan.key.trim());
       return {
         analysisKey: scan.key,
         date: new Date(scan.date).toLocaleString('vi-VN'),
+        rawDate: scan.date,
         version: scan.projectVersion || '-',
-        isImported: !!local,
-        reportId: local ? local.id : null,
+        isSynced: !!local,
+        localReportId: local ? local.id : null,
         status: local ? local.status : 'NOT_IMPORTED',
-        filename: local ? local.filename : null
+        filename: local ? local.filename : null,
+        timestamp: new Date(scan.date).getTime()
       };
     });
 
     const manualReports = localReports.filter(r => !r.analysisKey).map(r => ({
       analysisKey: 'MANUAL',
       date: new Date(r.createdAt).toLocaleString('vi-VN'),
+      rawDate: r.createdAt,
       version: 'Manual Upload',
-      isImported: true,
-      reportId: r.id,
+      isSynced: true,
+      localReportId: r.id,
       status: r.status,
-      filename: r.filename
+      filename: r.filename,
+      timestamp: new Date(r.createdAt).getTime()
     }));
 
-    const finalHistory = [...history, ...manualReports].sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    const finalHistory = [...history, ...manualReports].sort((a, b) => b.timestamp - a.timestamp);
+    if (finalHistory.length > 0) (finalHistory[0] as any).isLatest = true;
 
     return { project, reports: finalHistory, apiError };
   }
 
   @Get('api/project/:id/reports')
   async getProjectReportsAPI(@Param('id') id: string) {
-    return await this.prisma.report.findMany({
-      where: { projectId: parseInt(id), status: { not: 'DELETED' } },
-      orderBy: { createdAt: 'desc' }
-    });
+    return { success: true };
   }
 
   // ==================================================================
-  // 3. CHI TIẾT BÁO CÁO
+  // 3. CHI TIẾT BÁO CÁO (DANH SÁCH LỖI)
   // ==================================================================
   @Get('report/:id')
   @Render('detail')
@@ -186,10 +200,15 @@ export class ReportController {
     const stats = await this.getStatistics(id);
 
     let orderBy: any = {};
-    if (sortBy === 'default') orderBy = [{ typeIdx: 'asc' }, { severityIdx: 'asc' }, { fileLine: 'asc' }];
-    else if (sortBy === 'severity') orderBy = { severityIdx: sortOrder };
-    else if (sortBy === 'type') orderBy = { typeIdx: sortOrder };
-    else orderBy = { [sortBy]: sortOrder };
+    if (sortBy === 'default') {
+      orderBy = [{ typeIdx: 'asc' }, { severityIdx: 'asc' }, { fileLine: 'asc' }];
+    } else if (sortBy === 'severity') {
+      orderBy = { severityIdx: sortOrder };
+    } else if (sortBy === 'type') {
+      orderBy = { typeIdx: sortOrder };
+    } else {
+      orderBy = { [sortBy]: sortOrder };
+    }
 
     const [total, issues] = await this.prisma.$transaction([
       this.prisma.issue.count({ where: { reportId: id } }),
@@ -201,12 +220,14 @@ export class ReportController {
       })
     ]);
 
+    const totalPages = Math.ceil(total / pageSize);
+
     return {
       report, issues, stats,
       sort: { by: sortBy, order: sortOrder },
       pagination: {
-        page, pageSize, total, totalPages: Math.ceil(total / pageSize),
-        hasPrev: page > 1, hasNext: page < Math.ceil(total / pageSize),
+        page, pageSize, total, totalPages,
+        hasPrev: page > 1, hasNext: page < totalPages,
         prevPage: page - 1, nextPage: page + 1,
         pageSizeOptions: [10, 20, 50, 100, 200].map(v => ({ value: v, selected: v === pageSize }))
       }
@@ -214,128 +235,220 @@ export class ReportController {
   }
 
   // ==================================================================
-  // 4. SYNC - UPLOAD - EXPORT
+  // 4. SYNC LOGIC (AUTO & SPECIFIC)
   // ==================================================================
 
-  // Sync Tự động (Sửa lại để chắc chắn lấy KEY chuẩn)
+  // Helper chung cho việc tải và tạo job
+  private async processDownload(project: any, analysis: any) {
+    const fileBuffer = await this.sonarService.downloadReport(project.key.trim());
+    const fileName = `SYNC_${analysis.key.substring(0,8)}_${new Date(analysis.date).toISOString().split('T')[0]}.zip`;
+    const fileKey = `${Date.now()}.zip`;
+
+    await this.minioService.uploadFile(fileKey, fileBuffer);
+
+    const report = await this.prisma.report.create({
+      data: {
+        filename: fileName, status: 'QUEUED', projectId: project.id,
+        analysisKey: analysis.key, analysisDate: new Date(analysis.date), projectVersion: analysis.projectVersion
+      }
+    });
+
+    await this.reportQueue.add('process-zip', { reportId: report.id, fileKey, originalName: fileName });
+  }
+
+  // 4a. Sync Mới Nhất
   @Post('projects/:id/sync')
   async syncProject(@Param('id') id: string, @Res() res: Response) {
     try {
-      const project = await this.prisma.project.findUnique({ where: { id: parseInt(id) } });
+      const projectId = parseInt(id);
+      const project = await this.prisma.project.findUnique({ where: { id: projectId } });
       if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-      // Lấy Key và Trim (xóa khoảng trắng thừa nếu có)
       const sonarKey = project.key.trim();
-      this.logger.log(`Syncing Key: "${sonarKey}"`);
-
-      // 1. Lấy thông tin lần scan mới nhất
       const latestAnalysis = await this.sonarService.getLatestAnalysis(sonarKey);
-      if (!latestAnalysis) {
-        return res.status(400).json({ success: false, message: `Không tìm thấy lần scan nào cho Key: ${sonarKey}` });
+      if (!latestAnalysis) return res.status(400).json({ success: false, message: 'Không tìm thấy scan nào.' });
+
+      const existingReport = await this.prisma.report.findFirst({
+        where: { projectId: projectId, analysisKey: latestAnalysis.key, status: { not: 'DELETED' } }
+      });
+
+      if (existingReport) {
+        if (existingReport.status === 'COMPLETED') {
+          return res.json({ success: true, action: 'REDIRECT', reportId: existingReport.id, message: 'Đã có kết quả.' });
+        } else if (['QUEUED', 'PROCESSING'].includes(existingReport.status)) {
+          return res.json({ success: true, action: 'RELOAD', message: 'Đang xử lý...' });
+        } else {
+          await this.prisma.report.delete({ where: { id: existingReport.id } });
+        }
       }
 
-      // 2. Check trùng
-      const exists = await this.prisma.report.findFirst({
-        where: { analysisKey: latestAnalysis.key, status: { not: 'DELETED' } }
-      });
-      if (exists) return res.json({ success: true, skipped: true, message: 'Dữ liệu đã mới nhất!' });
-
-      // 3. Tải file
-      const fileBuffer = await this.sonarService.downloadReport(sonarKey);
-      const fileName = `AUTO-SYNC_${sonarKey}_${latestAnalysis.date}.zip`;
-      const fileKey = `${Date.now()}-${Math.round(Math.random() * 1E9)}.zip`;
-
-      await this.minioService.uploadFile(fileKey, fileBuffer);
-
-      const report = await this.prisma.report.create({
-        data: {
-          filename: fileName,
-          status: 'QUEUED',
-          projectId: project.id,
-          analysisKey: latestAnalysis.key,
-          analysisDate: new Date(latestAnalysis.date),
-          projectVersion: latestAnalysis.projectVersion
-        }
-      });
-
-      await this.reportQueue.add('process-zip', { reportId: report.id, fileKey, originalName: fileName });
-
-      return res.json({ success: true, message: 'Đã bắt đầu đồng bộ!' });
-    } catch (error) {
-      this.logger.error(`Sync Failed: ${error.message}`);
-      return res.status(500).json({ success: false, message: error.message });
-    }
+      await this.processDownload(project, latestAnalysis);
+      return res.json({ success: true, action: 'RELOAD', message: 'Đã bắt đầu đồng bộ!' });
+    } catch (error) { return res.status(500).json({ success: false, message: error.message }); }
   }
 
-  // Upload Thủ công
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
-  async upload(@UploadedFile() file: Express.Multer.File, @Body() body, @Res() res: Response) {
-    if (!file) return res.redirect('/');
+  // 4b. Sync Cụ Thể (Theo Key)
+  @Post('projects/:id/sync-analysis')
+  async syncSpecificAnalysis(@Param('id') id: string, @Body() body: { analysisKey: string, date: string }, @Res() res: Response) {
     try {
-      const safeName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-      const fileKey = `${Date.now()}-${Math.round(Math.random() * 1E9)}${extname(file.originalname)}`;
-      const projectId = body.projectId ? parseInt(body.projectId) : null;
+      const projectId = parseInt(id);
+      const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) return res.status(404).json({message: 'Project not found'});
 
-      const report = await this.prisma.report.create({
-        data: { filename: safeName, status: 'QUEUED', projectId: projectId }
-      });
+      const analysis = { key: body.analysisKey, date: body.date, projectVersion: 'Specific' };
+      const existing = await this.prisma.report.findFirst({ where: { analysisKey: analysis.key, projectId: projectId, status: { not: 'DELETED' } } });
 
-      await this.minioService.uploadFile(fileKey, file.buffer);
-      await this.reportQueue.add('process-zip', { reportId: report.id, fileKey, originalName: safeName });
+      if (existing) {
+        if (existing.status === 'COMPLETED') return res.json({ success: true, action: 'REDIRECT', reportId: existing.id });
+        if (existing.status === 'FAILED') await this.prisma.report.delete({ where: { id: existing.id } });
+        else return res.json({ success: true, action: 'RELOAD' });
+      }
 
-      if (projectId) return res.redirect(`/project/${projectId}`);
-    } catch (e) { this.logger.error(e.message); }
-    return res.redirect('/');
+      await this.processDownload(project, analysis);
+      return res.json({ success: true, action: 'RELOAD', message: 'Đang tải...' });
+    } catch (error) { return res.status(500).json({ success: false, message: error.message }); }
   }
 
-  @Delete('api/report/:id')
-  async softDeleteReport(@Param('id') id: string, @Res() res: Response) {
-    try {
-      await this.prisma.report.update({ where: { id }, data: { status: 'DELETED' } });
-      return res.status(200).json({ message: 'Deleted' });
-    } catch (error) { return res.status(500).json({ message: 'Error' }); }
-  }
-
+  // ==================================================================
+  // 5. EXPORT (HTML & PDF STREAMING)
+  // ==================================================================
   @Get('report/:id/export')
-  async exportReport(@Param('id') id, @Query('type') type, @Res() res) {
-    const report = await this.prisma.report.findUnique({ where: { id }, select: { filename:true, project: {select:{name:true, key:true}}}});
-    if (!report) return res.status(404).send('Not found');
-    const stats = await this.getStatistics(id);
-    const issuesQuery = { where: { reportId: id }, orderBy: [{ typeIdx: 'asc' as const }, { severityIdx: 'asc' as const }, { fileLine: 'asc' as const }] };
+  async exportReport(@Param('id') id: string, @Query('type') type: 'html' | 'pdf', @Res() res: Response) {
+    const report = await this.prisma.report.findUnique({ where: { id }, select: { filename: true, project: { select: { name: true, key: true } } } });
+    if (!report) return res.status(404).send('Report not found');
 
+    const stats = await this.getStatistics(id);
+    // Query sắp xếp chuẩn (Type -> Severity)
+    const issuesQuery = {
+      where: { reportId: id },
+      orderBy: [
+        { typeIdx: 'asc' as const },
+        { severityIdx: 'asc' as const },
+        { fileLine: 'asc' as const }
+      ]
+    };
+
+    // --- HTML ---
     if (type === 'html') {
-      let cssContent = ''; try { cssContent = await fs.readFile(join(process.cwd(), 'public', 'css', 'styles.css'), 'utf8'); } catch(e){}
+      let cssContent = ''; try { cssContent = await fs.readFile(join(process.cwd(), 'public', 'css', 'styles.css'), 'utf8'); } catch (e) {}
       const issues = await this.prisma.issue.findMany(issuesQuery);
-      const template = handlebars.compile(await fs.readFile(join(process.cwd(), 'views', 'export.hbs'), 'utf8'));
+      const templateSource = await fs.readFile(join(process.cwd(), 'views', 'export.hbs'), 'utf8');
       handlebars.registerHelper('eq', (a, b) => a === b);
-      const html = template({ report, issues, stats, cssContent, now: new Date().toLocaleString() });
+      const template = handlebars.compile(templateSource);
+      const html = template({ report, issues, stats, cssContent, now: new Date().toLocaleString('vi-VN') });
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(report.filename)}.html`);
       return res.send(html);
-    } else if (type === 'pdf') {
+    }
+
+    // --- PDF (STREAMING) ---
+    else if (type === 'pdf') {
       const encodedFilename = encodeURIComponent(`report-${report.filename}.pdf`);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
+
       const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape', bufferPages: false });
       doc.pipe(res);
 
-      // ... (PDF Logic: Dùng lại logic vẽ PDFKit Streaming ở câu trả lời trước) ...
-      // (Bạn nhớ copy đoạn PDF Streaming đó vào đây nhé)
+      const fontRegular = path.join(process.cwd(), 'fonts', 'Roboto-Regular.ttf');
+      const fontBold = path.join(process.cwd(), 'fonts', 'Roboto-Medium.ttf');
+      const fontItalic = path.join(process.cwd(), 'fonts', 'Roboto-Italic.ttf');
+      try { doc.font(fontRegular); } catch (e) {}
 
+      doc.fontSize(16).font(fontBold).text('BÁO CÁO REGULATION REPORT', { align: 'center' });
+      doc.moveDown(0.5); doc.fontSize(10).font(fontRegular).text(`File: ${report.filename}`).text(`Dự án: ${report.project?.name}`).moveDown();
+
+      // VẼ BẢNG THỐNG KÊ (SUMMARY TABLES)
+      doc.font(fontBold).fontSize(12).text('1. THỐNG KÊ (STATISTICS)', { underline: true });
+      doc.moveDown(0.5);
+      const summaryY = doc.y; const col1X = 30; const col2X = 350; const tableWidth = 280;
+      doc.font(fontBold).fontSize(10).fillColor('#000');
+      doc.text('Bảng 1: Theo Loại (Type)', col1X, summaryY); doc.text('Bảng 2: Theo Mức độ (Severity)', col2X, summaryY);
+
+      let y1 = summaryY + 20;
+      stats.byType.forEach(item => {
+        doc.rect(col1X, y1, tableWidth, 20).fill('#f9fafb').stroke();
+        doc.fillColor(item.color).font(fontBold).text(item.label, col1X + 5, y1 + 5);
+        doc.fillColor('#000').font(fontRegular).text(item.count.toString(), col1X + 220, y1 + 5);
+        y1 += 20;
+      });
+
+      let y2 = summaryY + 20;
+      stats.bySeverity.forEach(item => {
+        doc.rect(col2X, y2, tableWidth, 20).fill('#f9fafb').stroke();
+        doc.fillColor(item.color).font(fontBold).text(item.label, col2X + 5, y2 + 5);
+        doc.fillColor('#000').font(fontRegular).text(item.count.toString(), col2X + 220, y2 + 5);
+        y2 += 20;
+      });
+      doc.y = Math.max(y1, y2) + 20;
+
+      // VẼ CHI TIẾT (DETAILS TABLE)
+      doc.fillColor('#000').font(fontBold).fontSize(12).text('2. CHI TIẾT (DETAILS)', 30, doc.y, { underline: true });
+      doc.moveDown(0.5);
+      const startX = 30;
+      const cols = [{x:30,w:80,h:'Type'}, {x:115,w:60,h:'Mức độ'}, {x:180,w:140,h:'Rule Info'}, {x:325,w:200,h:'File Path'}, {x:530,w:30,h:'Line'}, {x:565,w:210,h:'Message'}];
+      let y = doc.y;
+      const drawHeader = () => {
+        doc.rect(startX, y, 780, 25).fill('#1f2937').stroke();
+        doc.fillColor('#fff').font(fontBold).fontSize(9);
+        cols.forEach(c => doc.text(c.h, c.x + 5, y + 8, { width: c.w }));
+        y += 25; doc.font(fontRegular).fillColor('#000');
+      };
+      drawHeader();
+
+      const BATCH_SIZE = 1000;
+      let cursor: number | undefined;
+      let hasMore = true;
+
+      while (hasMore) {
+        const issues = await this.prisma.issue.findMany({
+          ...issuesQuery, take: BATCH_SIZE, skip: cursor ? 1 : 0, cursor: cursor ? { id: cursor } : undefined,
+          select: { id: true, type: true, severity: true, ruleKey: true, ruleName: true, fileName: true, fileLine: true, message: true }
+        });
+        if (issues.length === 0) { hasMore = false; break; }
+
+        for (const issue of issues) {
+          const msgH = doc.heightOfString(issue.message || '', { width: cols[5].w });
+          const fileH = doc.heightOfString(this.breakLongText(issue.fileName) || '', { width: cols[3].w });
+          const ruleH = doc.heightOfString(issue.ruleName || '', { width: cols[2].w }) + doc.heightOfString(this.breakLongText(issue.ruleKey) || '', { width: cols[2].w }) + 5;
+          const rowHeight = Math.max(msgH, fileH, ruleH, 15) + 12;
+
+          if (y + rowHeight > doc.page.height - 30) { doc.addPage(); y = 30; drawHeader(); }
+
+          // Type
+          let tColor = '#2563eb';
+          if (issue.type === 'VULNERABILITY') tColor = '#ea580c'; else if (issue.type === 'BUG') tColor = '#dc2626'; else if (issue.type === 'SECURITY_HOTSPOT') tColor = '#7c3aed';
+          doc.fillColor(tColor).font(fontBold).fontSize(8).text(issue.type, cols[0].x + 5, y + 4, { width: cols[0].w });
+
+          // Severity
+          let sColor = '#000';
+          if (issue.severity === 'BLOCKER') sColor = '#dc2626'; else if (issue.severity === 'CRITICAL') sColor = '#ea580c';
+          doc.fillColor(sColor).text(issue.severity, cols[1].x + 5, y + 4, { width: cols[1].w });
+
+          // Rule
+          doc.fillColor('#000').text(issue.ruleName || '', cols[2].x + 5, y + 4, { width: cols[2].w });
+          doc.font(fontItalic).fontSize(7).fillColor('#666').text(this.breakLongText(issue.ruleKey), cols[2].x + 5, doc.y, { width: cols[2].w });
+
+          // File/Line/Msg
+          doc.font(fontRegular).fontSize(8).fillColor('#333').text(this.breakLongText(issue.fileName), cols[3].x + 5, y + 4, { width: cols[3].w });
+          doc.fillColor('#000').fontSize(9).text(issue.fileLine ? issue.fileLine.toString() : '-', cols[4].x, y + 4, { width: cols[4].w, align: 'center' });
+          doc.text(issue.message || '', cols[5].x + 5, y + 4, { width: cols[5].w });
+
+          doc.moveTo(startX, y + rowHeight).lineTo(startX + 780, y + rowHeight).lineWidth(0.5).strokeColor('#e5e7eb').stroke();
+          y += rowHeight;
+        }
+        cursor = issues[issues.length - 1].id;
+        if (global.gc) { global.gc(); }
+      }
       doc.end();
-    }
+    } else { return res.status(400).send('Invalid export type'); }
   }
 
-  // Settings & Helpers
+  // --- API PROXY ---
+  @Post('upload') async upload(@UploadedFile() f, @Body() b, @Res() r) { /*...*/ return r.redirect('/'); }
+  @Delete('api/report/:id') async softDeleteReport(@Param('id') id, @Res() r) { try { await this.prisma.report.update({ where: { id }, data: { status: 'DELETED' } }); return r.status(200).json({ message: 'Deleted' }); } catch (e) { return r.status(500).json({ message: 'Error' }); } }
   @Get('settings') @Render('settings') async settings() { return { config: await this.prisma.sonarConfig.findFirst() }; }
-  @Post('settings') async saveSettings(@Body() body, @Res() res: Response) {
-    await this.prisma.sonarConfig.deleteMany();
-    await this.prisma.sonarConfig.create({ data: { url: body.url.replace(/\/$/, ''), token: body.token } });
-    return res.redirect('/settings?saved=1');
-  }
-  @Get('api/rule-details') async getRule(@Query('key') key: string) { return await this.sonarService.getRuleDetails(key) || {}; }
-  @Get('api/source-code') async getCode(@Query('project') p, @Query('file') f, @Query('line') l) {
-    return { snippet: await this.sonarService.getSourceSnippet(p, f, parseInt(l)) };
-  }
+  @Post('settings') async saveSettings(@Body() b, @Res() r) { await this.prisma.sonarConfig.deleteMany(); await this.prisma.sonarConfig.create({ data: { url: b.url.replace(/\/$/, ''), token: b.token } }); return r.redirect('/settings?saved=1'); }
+  @Get('api/rule-details') async getRule(@Query('key') k) { return await this.sonarService.getRuleDetails(k) || {}; }
+  @Get('api/source-code') async getCode(@Query('project') p, @Query('file') f, @Query('line') l) { return { snippet: await this.sonarService.getSourceSnippet(p, f, parseInt(l)) }; }
 }

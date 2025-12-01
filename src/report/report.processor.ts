@@ -11,15 +11,13 @@ import { Logger } from '@nestjs/common';
 @Processor('report-queue')
 export class ReportProcessor extends WorkerHost {
   private readonly logger = new Logger(ReportProcessor.name);
-
-  // Định nghĩa thứ tự ưu tiên (Index càng nhỏ càng quan trọng)
   private readonly SEVERITY_ORDER = ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO'];
   private readonly TYPE_ORDER = ['VULNERABILITY', 'SECURITY_HOTSPOT', 'BUG', 'CODE_SMELL'];
 
   constructor(private prisma: PrismaService, private minioService: MinioService) { super(); }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    const { reportId, fileKey, originalName } = job.data;
+    const { reportId, fileKey } = job.data;
     const tempDir = path.resolve('./temp_processing');
     const zipFilePath = path.join(tempDir, fileKey);
     const extractPath = path.join(tempDir, path.basename(fileKey, '.zip'));
@@ -39,39 +37,26 @@ export class ReportProcessor extends WorkerHost {
       const stream = fs.createReadStream(csvPath).pipe(csv());
 
       for await (const row of stream) {
-        // --- TÍNH TOÁN INDEX ĐỂ SORT ---
-        let tIdx = this.TYPE_ORDER.indexOf(row['Type']);
-        if (tIdx === -1) tIdx = 99; // Không xác định thì đẩy xuống cuối
-
-        let sIdx = this.SEVERITY_ORDER.indexOf(row['Severity']);
-        if (sIdx === -1) sIdx = 99;
-        // -------------------------------
+        let tIdx = this.TYPE_ORDER.indexOf(row['Type']); if (tIdx === -1) tIdx = 99;
+        let sIdx = this.SEVERITY_ORDER.indexOf(row['Severity']); if (sIdx === -1) sIdx = 99;
 
         issuesBatch.push({
           reportId,
-          message: row['Message'],
-          type: row['Type'],
-          severity: row['Severity'],
-          ruleKey: row['Rule Key'],
-          ruleName: row['Rule Name'],
-          fileName: row['File Name'],
-          fileLine: row['File Line'] ? parseInt(row['File Line']) : 0,
-
-          // Lưu giá trị index vào DB
-          typeIdx: tIdx,
-          severityIdx: sIdx
+          message: row['Message'], type: row['Type'], severity: row['Severity'],
+          ruleKey: row['Rule Key'], ruleName: row['Rule Name'],
+          fileName: row['File Name'], fileLine: row['File Line'] ? parseInt(row['File Line']) : 0,
+          typeIdx: tIdx, severityIdx: sIdx
         });
 
-        if (issuesBatch.length >= 1000) {
-          await this.prisma.issue.createMany({ data: issuesBatch });
-          issuesBatch.length = 0;
-        }
+        if (issuesBatch.length >= 1000) { await this.prisma.issue.createMany({ data: issuesBatch }); issuesBatch.length = 0; }
       }
       if (issuesBatch.length > 0) await this.prisma.issue.createMany({ data: issuesBatch });
 
+      // [QUAN TRỌNG] Update thành COMPLETED
       await this.prisma.report.update({ where: { id: reportId }, data: { status: 'COMPLETED' } });
+
     } catch (error) {
-      this.logger.error(error.message);
+      this.logger.error(`Job Failed: ${error.message}`);
       await this.prisma.report.update({ where: { id: reportId }, data: { status: 'FAILED' } });
     } finally {
       if (await fs.pathExists(zipFilePath)) await fs.remove(zipFilePath);
@@ -79,7 +64,7 @@ export class ReportProcessor extends WorkerHost {
     }
   }
 
-  private async findFile(dir, filename): Promise<string | null> {
+  private async findFile(dir: string, filename: string): Promise<string | null> {
     const files = await fs.readdir(dir);
     for (const file of files) {
       const fullPath = path.join(dir, file);

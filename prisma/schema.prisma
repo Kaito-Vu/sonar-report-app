@@ -16,37 +16,40 @@ model Project {
 }
 
 model Report {
-  id           String   @id @default(uuid())
-  filename     String
-  status       String   @default("PENDING")
-  createdAt    DateTime @default(now())     // Ngày giờ import vào hệ thống
+  id             String    @id @default(uuid())
+  filename       String
+  status         String    @default("PENDING") // QUEUED, PROCESSING, COMPLETED, FAILED
+  createdAt      DateTime  @default(now())
 
-  // Thông tin từ SonarQube
-  analysisKey  String?  @unique             // ID duy nhất của lần scan trên Sonar
-  analysisDate DateTime?                    // Ngày giờ scan trên Sonar
-  projectVersion String?                    // Version của build (nếu có)
+  // KHÓA LIÊN KẾT VỚI SONARQUBE
+  analysisKey    String?   // Đây là Key duy nhất của lần Scan (VD: AY_x1z...)
+  analysisDate   DateTime? // Ngày quét
+  projectVersion String?
 
-  projectId    Int?
-  project      Project? @relation(fields: [projectId], references: [id])
-  issues       Issue[]
+  projectId      Int?
+  project        Project?  @relation(fields: [projectId], references: [id])
+  issues         Issue[]
+
+  // RÀNG BUỘC: Một dự án không thể có 2 báo cáo trùng analysisKey
+  @@unique([projectId, analysisKey])
 }
 
 model Issue {
-  id                    Int     @id @default(autoincrement())
-  reportId              String
-  report                Report  @relation(fields: [reportId], references: [id])
-  message               String?
-  type                  String?
-  severity              String?
-  ruleKey               String?
-  ruleName              String?
-  fileName              String?
-  fileLine              Int?
-  typeIdx               Int     @default(99)
-  severityIdx           Int     @default(99)
-  impactMaintainability String?
-  impactReliability     String?
-  impactSecurity        String?
+  id          Int     @id @default(autoincrement())
+  reportId    String
+  report      Report  @relation(fields: [reportId], references: [id])
+
+  message     String?
+  type        String?
+  severity    String?
+  ruleKey     String?
+  ruleName    String?
+  fileName    String?
+  fileLine    Int?
+
+  typeIdx     Int     @default(99)
+  severityIdx Int     @default(99)
+
   @@index([reportId])
   @@index([reportId, typeIdx, severityIdx])
 }

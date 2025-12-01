@@ -5,34 +5,36 @@ import { AppModule } from './app.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { LoggingInterceptor } from './logging.interceptor';
 
-// Dùng require để import hbs (tránh lỗi TypeScript 'registerHelper is not a function')
+// Dùng require để tránh lỗi type với thư viện cũ
 const hbs = require('hbs');
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // 1. Setup Logger & Interceptor
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  // 2. Setup Static Assets (CSS, JS, Fonts)
-  // Sử dụng process.cwd() để đảm bảo đường dẫn đúng cả khi chạy dev lẫn prod (dist)
+  // Cấu hình Static Assets & View
   app.useStaticAssets(join(process.cwd(), 'public'));
-
-  // 3. Setup View Engine (Handlebars)
   app.setBaseViewsDir(join(process.cwd(), 'views'));
   app.setViewEngine('hbs');
 
-  // 4. Đăng ký Partials (Thư mục con chứa các file .hbs tái sử dụng)
+  // Đăng ký Partials
   hbs.registerPartials(join(process.cwd(), 'views', 'partials'));
 
-  // 5. Đăng ký Helpers
+  // === ĐĂNG KÝ HELPERS (FIX LỖI CỦA BẠN TẠI ĐÂY) ===
+
   // Helper so sánh bằng: {{#if (eq a b)}}
   hbs.registerHelper('eq', function (a, b) {
     return a === b;
   });
 
-  // Helper debug dữ liệu: {{json object}}
+  // Helper logic AND: {{#if (and a b)}}
+  hbs.registerHelper('and', function (a, b) {
+    return a && b;
+  });
+
+  // Helper debug JSON
   hbs.registerHelper('json', function (context) {
     return JSON.stringify(context);
   });

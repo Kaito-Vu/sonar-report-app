@@ -2,28 +2,55 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Sonar Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonar Manager</title>
   <link href="/css/styles.css" rel="stylesheet">
   <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-</head>
-<body class="bg-gray-50 text-gray-800 h-screen flex flex-col font-sans overflow-hidden">
 
-<nav class="flex-none bg-white shadow-sm border-b border-gray-200 px-6 py-3 flex justify-between z-20">
-  <a href="/" class="flex items-center gap-2 text-blue-600 font-bold text-xl">
-    <span class="iconify" data-icon="simple-icons:sonarqube"></span> SonarManager
-  </a>
-  <a href="/settings" class="text-gray-500 hover:text-blue-600 p-1 rounded hover:bg-gray-100 transition">
-    <span class="iconify w-6 h-6" data-icon="mdi:cog"></span>
-  </a>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Custom Scrollbar cho bảng */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+<nav class="flex-none bg-white border-b border-slate-200 z-30 shadow-sm">
+  <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+    <a href="/" class="flex items-center gap-3 text-slate-800 hover:text-indigo-600 transition group">
+      <div class="bg-indigo-600 text-white p-1.5 rounded-lg group-hover:bg-indigo-700 transition">
+        <span class="iconify w-6 h-6" data-icon="simple-icons:sonarqube"></span>
+      </div>
+      <span class="font-bold text-lg tracking-tight">SonarManager</span>
+    </a>
+
+    <div class="flex items-center gap-4">
+      <a href="/settings" class="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 transition" title="Cấu hình hệ thống">
+        <span class="iconify w-5 h-5" data-icon="mdi:cog-outline"></span>
+      </a>
+      <div class="h-4 w-px bg-slate-200"></div>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">AD</div>
+      </div>
+    </div>
+  </div>
 </nav>
 
 <main class="flex-1 flex flex-col min-h-0 w-full">
-  {{{body}}}
+  <div class="flex-1 w-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col overflow-hidden">
+    {{{body}}}
+  </div>
 </main>
 
-<footer class="flex-none bg-white border-t border-gray-200 py-2 px-6 text-center text-xs text-gray-500 z-20">
-  &copy; 2025 Sonar Report App.
+<footer class="flex-none bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400 z-20">
+  <div class="max-w-screen-xl mx-auto px-4">
+    &copy; 2025 Sonar Report System. Version 1.0.0
+  </div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>

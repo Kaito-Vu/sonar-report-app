@@ -12,7 +12,6 @@ export class SonarService {
     private prisma: PrismaService
   ) {}
 
-  // Lấy cấu hình DB
   private async getConfig() {
     const config = await this.prisma.sonarConfig.findFirst();
     if (!config) {
@@ -22,7 +21,7 @@ export class SonarService {
     return config;
   }
 
-  // 1. Lấy thông tin Rule (Caching vào DB)
+  // 1. Lấy thông tin Rule (Caching)
   async getRuleDetails(ruleKey: string) {
     const cachedRule = await this.prisma.sonarRule.findUnique({ where: { key: ruleKey } });
     if (cachedRule) return cachedRule;
@@ -46,7 +45,6 @@ export class SonarService {
         }
       });
     } catch (e) {
-      // Cache rule lỗi để tránh gọi lại liên tục
       if (e.response?.status === 404) {
         return await this.prisma.sonarRule.create({
           data: { key: ruleKey, name: 'External/Unknown Rule', htmlDesc: '', isExternal: true }
@@ -60,48 +58,42 @@ export class SonarService {
   async getSourceSnippet(projectKey: string, filePath: string, line: number) {
     try {
       const { url, token } = await this.getConfig();
-      // Lấy context +- 5 dòng
       const endpoint = `${url}/api/sources/lines?key=${projectKey}:${filePath}&from=${Math.max(1, line - 5)}&to=${line + 5}`;
-
       const res = await lastValueFrom(
         this.httpService.get(endpoint, { auth: { username: token, password: '' } })
       );
       return res.data.sources;
-    } catch (e) {
-      // this.logger.warn(`Get Code Error: ${e.message}`);
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
-  // 3. [MỚI] Lấy Lịch sử Scan (Project Analyses)
+  // 3. Lấy Lịch sử Scan (Project Analyses)
   async getProjectAnalyses(projectKey: string) {
     try {
       const { url, token } = await this.getConfig();
-      // API Sonar: Tìm lịch sử analysis
       const endpoint = `${url}/api/project_analyses/search?project=${encodeURIComponent(projectKey)}`;
 
       const response = await lastValueFrom(
         this.httpService.get(endpoint, { auth: { username: token, password: '' } })
       );
-      return response.data.analyses || []; // Trả về mảng [{ key, date, projectVersion }, ...]
+      return response.data.analyses || [];
     } catch (error) {
-      this.logger.error(`Lỗi lấy lịch sử scan (${projectKey}): ${error.message}`);
+      if (error.response?.status === 404) throw new Error(`Project Key "${projectKey}" không tồn tại trên SonarQube.`);
+      this.logger.error(`Lỗi lấy lịch sử scan: ${error.message}`);
       return [];
     }
   }
 
-  // 4. [MỚI] Lấy thông tin bản scan mới nhất
+  // 4. Lấy bản Scan mới nhất
   async getLatestAnalysis(projectKey: string) {
     const analyses = await this.getProjectAnalyses(projectKey);
     return analyses.length > 0 ? analyses[0] : null;
   }
 
-  // 5. Tải file Báo cáo (ZIP)
+  // 5. Tải file Báo cáo ZIP
   async downloadReport(projectKey: string, branch = 'main'): Promise<Buffer> {
     try {
       const { url, token } = await this.getConfig();
       const endpoint = `${url}/api/regulatory_reports/download?project=${encodeURIComponent(projectKey)}&branch=${branch}`;
-
       this.logger.log(`📥 Downloading report from: ${endpoint}`);
 
       const response = await lastValueFrom(
@@ -114,7 +106,7 @@ export class SonarService {
       return Buffer.from(response.data);
     } catch (error) {
       this.logger.error(`Download Error: ${error.message}`);
-      throw new Error(`Lỗi tải file từ SonarQube (Key: ${projectKey}).`);
+      throw new Error(`Lỗi tải file từ SonarQube. Kiểm tra lại Key "${projectKey}".`);
     }
   }
 }

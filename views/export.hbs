@@ -1,41 +1,30 @@
 <body>
 <div class="container">
-  <div style="display: flex; gap: 30px; margin-bottom: 30px; page-break-inside: avoid;">
-    <div style="flex: 1;">
-      <h3 style="border-bottom: 2px solid #ccc; font-size: 14px;">THỐNG KÊ THEO LOẠI (TYPE)</h3>
-      <table style="width: 100%; margin-top:5px;">
-        {{#each stats.byType}}
-          <tr>
-            <td style="color:{{this.color}}; font-weight:bold;">{{this.label}}</td>
-            <td style="text-align:right; font-weight:bold;">{{this.count}}</td>
-          </tr>
-        {{/each}}
-      </table>
+  <h1>Báo cáo: {{report.filename}}</h1>
+
+  <div style="display:flex; gap:20px; margin-bottom:20px;">
+    <div style="flex:1">
+      <h3>Thống kê Loại</h3>
+      <table>{{#each stats.byType}}<tr><td style="color:{{this.color}}">{{this.label}}</td><td>{{this.count}}</td></tr>{{/each}}</table>
     </div>
-    <div style="flex: 1;">
-      <h3 style="border-bottom: 2px solid #ccc; font-size: 14px;">THỐNG KÊ THEO MỨC ĐỘ (SEVERITY)</h3>
-      <table style="width: 100%; margin-top:5px;">
-        {{#each stats.bySeverity}}
-          <tr>
-            <td style="color:{{this.color}}; font-weight:bold;">{{this.label}}</td>
-            <td style="text-align:right; font-weight:bold;">{{this.count}}</td>
-          </tr>
-        {{/each}}
-      </table>
+    <div style="flex:1">
+      <h3>Thống kê Mức độ</h3>
+      <table>{{#each stats.bySeverity}}<tr><td style="color:{{this.color}}">{{this.label}}</td><td>{{this.count}}</td></tr>{{/each}}</table>
     </div>
   </div>
 
+  <h3>Chi tiết lỗi</h3>
   <table>
-    <thead>
-    <tr>
-      <th>Type</th>
-      <th>Severity</th>
-    </tr>
-    </thead>
+    <thead><tr><th>Type</th><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Message</th></tr></thead>
     <tbody>
     {{#each issues}}
       <tr>
-        <td><span class="badge" style="color: #fff; background: #555;">{{this.type}}</span></td>
+        <td>{{this.type}}</td>
+        <td>{{this.severity}}</td>
+        <td>{{this.ruleKey}}</td>
+        <td>{{this.fileName}}</td>
+        <td>{{this.fileLine}}</td>
+        <td>{{this.message}}</td>
       </tr>
     {{/each}}
     </tbody>

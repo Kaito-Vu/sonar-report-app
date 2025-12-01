@@ -2,115 +2,114 @@
 
 <div class="flex justify-between items-center mb-6">
   <div>
-    <a href="/" class="text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-1 text-sm"><span class="iconify" data-icon="mdi:arrow-left"></span> Trang chủ</a>
-    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-      <span class="iconify text-blue-600" data-icon="mdi:folder-open"></span>
-      {{project.name}}
-    </h2>
-    <p class="text-sm text-gray-500 font-mono flex items-center gap-1">Key: <span class="bg-gray-100 px-1 rounded">{{project.key}}</span></p>
+    <a href="/" class="text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-1 text-sm transition"><span class="iconify" data-icon="mdi:arrow-left"></span> Dashboard</a>
+    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span class="iconify text-indigo-600" data-icon="mdi:folder-open"></span> {{project.name}}</h2>
+    <p class="text-sm text-slate-500 font-mono flex items-center gap-1">Key: <span class="bg-slate-100 px-1 rounded">{{project.key}}</span></p>
   </div>
-
   <div class="flex gap-2">
-    <button onclick="syncProject({{project.id}})" class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm">
-      <span class="iconify" data-icon="mdi:cloud-sync"></span> Scan Mới
+    <button onclick="syncLatest({{project.id}})" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition">
+      <span class="iconify" data-icon="mdi:cloud-refresh"></span> Kiểm tra & Mở Mới Nhất
     </button>
   </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-  <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-    <span class="font-bold text-gray-700">Lịch sử Phân tích (Scan History)</span>
-    <span class="text-xs text-gray-500 flex items-center gap-1"><span id="loadingIcon" class="iconify animate-spin" data-icon="mdi:loading"></span> Auto Refresh</span>
+{{#if apiError}}<div class="bg-rose-50 text-rose-700 p-4 rounded mb-6 border-l-4 border-rose-500">{{apiError}}</div>{{/if}}
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 font-bold text-slate-700 flex justify-between items-center">
+    <span>Lịch sử Quét (SonarQube History)</span>
+    <span class="text-xs text-slate-500 font-normal flex items-center gap-1"><span id="loadingIcon" class="iconify animate-spin" data-icon="mdi:loading"></span> Auto Update</span>
   </div>
 
-  <table class="w-full text-left text-sm text-gray-600">
-    <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
+  <table class="w-full text-left text-sm text-slate-600">
+    <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-semibold">
     <tr>
       <th class="px-6 py-3 w-48">Thời gian Scan</th>
-      <th class="px-6 py-3">Tên File / Source</th>
-      <th class="px-6 py-3 text-center w-32">Trạng thái</th>
-      <th class="px-6 py-3 text-right w-40">Thao tác</th>
+      <th class="px-6 py-3">Version / Analysis ID</th>
+      <th class="px-6 py-3 text-center w-40">Trạng thái</th>
+      <th class="px-6 py-3 text-right w-48">Hành động</th>
     </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100" id="reportTableBody">
+    <tbody class="divide-y divide-slate-100" id="reportTableBody">
     {{#each reports}}
-      <tr class="hover:bg-gray-50 transition group">
-        <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">{{this.createdAt}}</td>
-        <td class="px-6 py-4 text-xs text-gray-500">{{this.filename}}</td>
+      <tr class="hover:bg-slate-50 transition group {{#if this.isLatest}}bg-indigo-50/30{{/if}}">
+        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-900 font-medium">
+          {{this.date}}
+          {{#if this.isLatest}}<span class="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200">NEW</span>{{/if}}
+        </td>
+        <td class="px-6 py-4 text-xs text-gray-500">
+          {{#if (eq this.analysisKey 'MANUAL')}}Thủ công{{else}}
+            <div class="flex flex-col">
+              <span class="font-bold text-slate-700">{{this.version}}</span>
+              <span class="font-mono text-[10px] text-slate-500 select-all">{{this.analysisKey}}</span>
+            </div>
+          {{/if}}
+        </td>
         <td class="px-6 py-4 text-center">
-          {{#if (eq this.status 'COMPLETED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Hoàn thành</span>
-          {{else}}{{#if (eq this.status 'FAILED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Lỗi</span>
-          {{else}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">{{this.status}} <span class="iconify animate-spin ml-1" data-icon="mdi:loading"></span></span>
-          {{/if}}{{/if}}
+          {{#if this.isSynced}}
+            {{#if (eq this.status 'COMPLETED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200"><span class="iconify mr-1" data-icon="mdi:check-circle"></span> Đã phân tích</span>
+            {{else}}{{#if (eq this.status 'FAILED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Lỗi</span>
+            {{else}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">{{this.status}}...</span>{{/if}}{{/if}}
+          {{else}}<span class="text-slate-400 italic text-xs">Chưa tải về</span>{{/if}}
         </td>
         <td class="px-6 py-4 text-right">
           <div class="flex items-center justify-end gap-3">
-            {{#if (eq this.status 'COMPLETED')}}
-              <a href="/report/{{this.id}}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline flex items-center gap-1">
-                Xem kết quả <span class="iconify" data-icon="mdi:arrow-right"></span>
-              </a>
+            {{#if this.isSynced}}
+              {{#if (eq this.status 'COMPLETED')}}
+                <a href="/report/{{this.localReportId}}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline flex items-center gap-1 text-xs border border-indigo-100 bg-indigo-50 px-3 py-1.5 rounded transition shadow-sm">Xem KQ <span class="iconify" data-icon="mdi:arrow-right"></span></a>
+              {{/if}}
+              <button onclick="deleteReport('{{this.localReportId}}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded hover:bg-rose-50 transition" title="Xóa"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
+            {{else}}
+              <button onclick="syncSpecific('{{this.analysisKey}}', '{{this.date}}')" class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1">
+                <span class="iconify" data-icon="mdi:download"></span> Tải về
+              </button>
             {{/if}}
-            <button onclick="deleteReport('{{this.id}}')" class="text-gray-400 hover:text-red-600 transition" title="Xóa"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
           </div>
         </td>
       </tr>
     {{/each}}
     </tbody>
   </table>
-
-  {{#unless reports}}
-    <div class="text-center py-12 text-gray-400">
-      <span class="iconify w-12 h-12 mx-auto mb-2 text-gray-200" data-icon="mdi:history"></span>
-      <p>Dự án này chưa có lần scan nào.</p>
-    </div>
-  {{/unless}}
 </div>
 
 <script>
   const projectId = {{project.id}};
 
-  async function syncProject(id) {
-    if(!confirm(`Quét ngay bây giờ?`)) return;
+  async function syncLatest(id) {
+    const btn = event.currentTarget; btn.disabled = true; btn.innerHTML = 'Processing...';
     try {
-      await fetch(`/projects/${id}/sync`, { method: 'POST' });
-      updateTable();
-    } catch(e) { alert('Lỗi.'); }
+      const res = await fetch(`/projects/${id}/sync`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        if (data.action === 'REDIRECT') window.location.href = `/report/${data.reportId}`;
+        else { alert(data.message); location.reload(); }
+      } else alert('❌ ' + data.message);
+    } catch(e) { alert('Lỗi.'); } finally { btn.disabled = false; btn.innerHTML = 'Kiểm tra & Mở Mới Nhất'; }
+  }
+
+  async function syncSpecific(key, date) {
+    if(!confirm(`Tải báo cáo cho Analysis ID: ${key}?`)) return;
+    try {
+      const res = await fetch(`/projects/${projectId}/sync-analysis`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ analysisKey: key, date: date })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if(data.action === 'REDIRECT') window.location.href = `/report/${data.reportId}`;
+        else { alert(data.message); location.reload(); }
+      } else alert('❌ ' + data.message);
+    } catch(e) { alert('Lỗi kết nối.'); }
   }
 
   async function deleteReport(id) {
-    if(!confirm("Xóa bản scan này?")) return;
+    if(!confirm("Xóa?")) return;
     await fetch(`/api/report/${id}`, { method: 'DELETE' });
-    updateTable();
+    location.reload();
   }
 
-  function updateTable() {
-    const tbody = document.getElementById('reportTableBody');
-    const icon = document.getElementById('loadingIcon');
-    icon.classList.remove('text-gray-300'); icon.classList.add('text-blue-500');
-
-    fetch(`/api/project/${projectId}/reports`)
-      .then(res => res.json())
-      .then(data => {
-        let html = '';
-        data.forEach(r => {
-          const status = r.status === 'COMPLETED' ? '<span class="text-green-600 bg-green-50 px-2 py-0.5 rounded text-xs font-bold">Hoàn thành</span>' :
-            (r.status === 'FAILED' ? '<span class="text-red-600 bg-red-50 px-2 py-0.5 rounded text-xs font-bold">Lỗi</span>' :
-              `<span class="text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded text-xs font-bold">${r.status} <span class="iconify animate-spin" data-icon="mdi:loading"></span></span>`);
-
-          const btn = r.status === 'COMPLETED' ? `<a href="/report/${r.id}" class="text-blue-600 font-bold hover:underline flex items-center justify-end gap-1">Xem kết quả <span class="iconify" data-icon="mdi:arrow-right"></span></a>` : '';
-
-          html += `
-                        <tr class="hover:bg-gray-50 transition group">
-                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 font-medium">${new Date(r.createdAt).toLocaleString('vi-VN')}</td>
-                            <td class="px-6 py-4 text-xs text-gray-500">${r.filename}</td>
-                            <td class="px-6 py-4 text-center">${status}</td>
-                            <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-3">${btn}<button onclick="deleteReport('${r.id}')" class="text-gray-400 hover:text-red-600 transition"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button></div></td>
-                        </tr>`;
-        });
-        if(html) tbody.innerHTML = html;
-      })
-      .finally(() => { icon.classList.add('text-gray-300'); icon.classList.remove('text-blue-500'); });
-  }
-
-  setInterval(updateTable, 5000);
+  setTimeout(() => {
+    if(document.body.innerText.includes('QUEUED') || document.body.innerText.includes('PROCESSING')) window.location.reload();
+  }, 5000);
 </script>
