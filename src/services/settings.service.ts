@@ -45,5 +45,3 @@ export class SettingsService extends BaseService {
     this.logSuccess('updateSettings');
   }
 }
-
-

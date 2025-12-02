@@ -42,7 +42,9 @@ export class StringUtil {
    * Generate random string
    */
   static random(length = 8): string {
-    return Math.random().toString(36).substring(2, 2 + length);
+    return Math.random()
+      .toString(36)
+      .substring(2, 2 + length);
   }
 
   /**
@@ -57,8 +59,6 @@ export class StringUtil {
    */
   static breakLongText(text: string | null | undefined): string {
     if (!text) return '';
-    return text.replace(/([\/._:,-])/g, '$1\u200B');
+    return text.replace(/([/._:,-])/g, '$1\u200B');
   }
 }
-
-

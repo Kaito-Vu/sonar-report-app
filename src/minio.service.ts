@@ -20,8 +20,11 @@ export class MinioService implements OnModuleInit {
   async onModuleInit() {
     try {
       const exists = await this.minioClient.bucketExists(this.bucketName);
-      if (!exists) await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
-    } catch (e) { this.logger.error(`MinIO Error: ${e.message}`); }
+      if (!exists)
+        await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
+    } catch (e) {
+      this.logger.error(`MinIO Error: ${e.message}`);
+    }
   }
 
   async uploadFile(filename: string, buffer: Buffer) {

@@ -59,7 +59,7 @@
             </a>
           </h4>
         </div>
-        <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="text-center">
             <p class="text-xs text-slate-600 dark:text-slate-400 mb-1">Tổng Issues</p>
             <p class="text-2xl font-bold {{#if (gt comparison.diff 0)}}text-rose-600 dark:text-rose-400{{else}}{{#if (lt comparison.diff 0)}}text-green-600 dark:text-green-400{{else}}text-slate-600 dark:text-slate-400{{/if}}{{/if}}">
@@ -72,6 +72,16 @@
             </p>
             <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
               Trước: {{comparison.previousTotal}}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-slate-600 dark:text-slate-400 mb-1">Issues Mới</p>
+            <p class="text-2xl font-bold {{#if (gt comparison.newIssuesCount 0)}}text-amber-600 dark:text-amber-400{{else}}text-green-600 dark:text-green-400{{/if}}">
+              {{comparison.newIssuesCount}}
+              <span class="iconify inline text-lg" data-icon="mdi:new-box"></span>
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
+              Phát sinh mới
             </p>
           </div>
           <div class="text-center">
@@ -97,6 +107,30 @@
           </div>
         </div>
       </div>
+      {{/if}}
+
+      {{#if comparison}}
+      {{#if (gt comparison.newIssuesCount 0)}}
+      <!-- New Issues Summary Card -->
+      <div class="md:col-span-2 border border-amber-200 dark:border-amber-800 rounded-lg overflow-hidden bg-amber-50/50 dark:bg-amber-900/20">
+        <div class="p-3 border-b border-amber-200 dark:border-amber-800 bg-amber-100 dark:bg-amber-900/30 flex justify-between items-center">
+          <h4 class="font-bold text-sm text-amber-900 dark:text-amber-200 flex items-center gap-2">
+            <span class="iconify" data-icon="mdi:new-box"></span>
+            Issues Mới Phát Sinh ({{comparison.newIssuesCount}})
+          </h4>
+          <button onclick="document.getElementById('filterNewIssues').value='new'; applyFilters(); document.getElementById('dashboardContainer').scrollIntoView({ behavior: 'smooth', block: 'end' });" class="text-xs text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 font-medium flex items-center gap-1 px-2 py-1 bg-white dark:bg-amber-900/40 rounded border border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/60 transition">
+            <span class="iconify" data-icon="mdi:filter"></span> Xem tất cả
+          </button>
+        </div>
+        <div class="p-3">
+          <p class="text-xs text-amber-800 dark:text-amber-300 mb-2">
+            <span class="iconify inline" data-icon="mdi:information-outline"></span>
+            Có <strong>{{comparison.newIssuesCount}} issues mới</strong> được phát hiện so với báo cáo trước.
+            Sử dụng bộ lọc "Chỉ issues mới" để xem chi tiết hoặc cuộn xuống danh sách bên dưới.
+          </p>
+        </div>
+      </div>
+      {{/if}}
       {{/if}}
 
       <div class="border border-slate-100 dark:border-slate-700 rounded-lg overflow-hidden">
@@ -184,6 +218,13 @@
         <option value="MINOR">MINOR</option>
         <option value="INFO">INFO</option>
       </select>
+      {{#if comparison}}
+      <select id="filterNewIssues" class="px-3 py-2 border border-amber-300 dark:border-amber-600 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-slate-900 dark:text-slate-200 text-sm focus:ring-2 focus:ring-amber-500 outline-none font-medium">
+        <option value="">Tất cả issues</option>
+        <option value="new">Chỉ issues mới</option>
+        <option value="existing">Chỉ issues cũ</option>
+      </select>
+      {{/if}}
       <button onclick="clearFilters()" class="px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
         <span class="iconify w-4 h-4" data-icon="mdi:filter-off"></span> Xóa bộ lọc
       </button>
@@ -222,23 +263,33 @@
         <tbody id="issuesTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm text-slate-600 dark:text-slate-300">
         {{#if issues.length}}
           {{#each issues}}
-            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group issue-row" 
-                data-type="{{this.type}}" 
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group issue-row {{#if this.isNew}}bg-amber-50/30 dark:bg-amber-900/10{{/if}}"
+                data-type="{{this.type}}"
                 data-severity="{{this.severity}}"
                 data-message="{{this.message}}"
                 data-file="{{this.fileName}}"
-                data-rule="{{this.ruleKey}}">
+                data-rule="{{this.ruleKey}}"
+                data-is-new="{{this.isNew}}">
 
               <td class="px-4 py-3 align-top">
-                {{#if (eq this.type 'BUG')}}
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100"><span class="iconify" data-icon="mdi:bug"></span> BUG</span>
-                {{else}}{{#if (eq this.type 'VULNERABILITY')}}
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100"><span class="iconify" data-icon="mdi:lock-open-alert"></span> VULN</span>
-                {{else}}{{#if (eq this.type 'SECURITY_HOTSPOT')}}
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100"><span class="iconify" data-icon="mdi:eye-circle"></span> HOTSPOT</span>
-                {{else}}
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100"><span class="iconify" data-icon="mdi:code-braces"></span> SMELL</span>
-                {{/if}}{{/if}}{{/if}}
+                <div class="flex flex-col gap-1.5">
+                  <div>
+                    {{#if (eq this.type 'BUG')}}
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100"><span class="iconify" data-icon="mdi:bug"></span> BUG</span>
+                    {{else}}{{#if (eq this.type 'VULNERABILITY')}}
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100"><span class="iconify" data-icon="mdi:lock-open-alert"></span> VULN</span>
+                    {{else}}{{#if (eq this.type 'SECURITY_HOTSPOT')}}
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100"><span class="iconify" data-icon="mdi:eye-circle"></span> HOTSPOT</span>
+                    {{else}}
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100"><span class="iconify" data-icon="mdi:code-braces"></span> SMELL</span>
+                    {{/if}}{{/if}}{{/if}}
+                  </div>
+                  {{#if this.isNew}}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm animate-pulse w-fit">
+                      <span class="iconify" data-icon="mdi:new-box"></span> MỚI
+                    </span>
+                  {{/if}}
+                </div>
               </td>
 
               <td class="px-4 py-3 text-center align-top">
@@ -383,6 +434,7 @@
     const searchTerm = document.getElementById('issueSearchInput')?.value.toLowerCase() || '';
     const filterType = document.getElementById('filterType')?.value || '';
     const filterSeverity = document.getElementById('filterSeverity')?.value || '';
+    const filterNewIssues = document.getElementById('filterNewIssues')?.value || '';
     const rows = document.querySelectorAll('.issue-row');
     let visibleCount = 0;
 
@@ -392,15 +444,19 @@
       const message = (row.dataset.message || '').toLowerCase();
       const file = (row.dataset.file || '').toLowerCase();
       const rule = (row.dataset.rule || '').toLowerCase();
+      const isNew = row.dataset.isNew === 'true';
 
-      const matchesSearch = !searchTerm || 
-        message.includes(searchTerm) || 
-        file.includes(searchTerm) || 
+      const matchesSearch = !searchTerm ||
+        message.includes(searchTerm) ||
+        file.includes(searchTerm) ||
         rule.includes(searchTerm);
       const matchesType = !filterType || type === filterType;
       const matchesSeverity = !filterSeverity || severity === filterSeverity;
+      const matchesNewFilter = !filterNewIssues ||
+        (filterNewIssues === 'new' && isNew) ||
+        (filterNewIssues === 'existing' && !isNew);
 
-      const visible = matchesSearch && matchesType && matchesSeverity;
+      const visible = matchesSearch && matchesType && matchesSeverity && matchesNewFilter;
       row.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
@@ -413,11 +469,13 @@
     const searchInput = document.getElementById('issueSearchInput');
     const filterType = document.getElementById('filterType');
     const filterSeverity = document.getElementById('filterSeverity');
-    
+    const filterNewIssues = document.getElementById('filterNewIssues');
+
     if (searchInput) searchInput.value = '';
     if (filterType) filterType.value = '';
     if (filterSeverity) filterSeverity.value = '';
-    
+    if (filterNewIssues) filterNewIssues.value = '';
+
     applyFilters();
   }
 
@@ -426,12 +484,14 @@
     const searchInput = document.getElementById('issueSearchInput');
     const filterType = document.getElementById('filterType');
     const filterSeverity = document.getElementById('filterSeverity');
+    const filterNewIssues = document.getElementById('filterNewIssues');
 
     if (searchInput) {
       searchInput.addEventListener('input', window.searchFilter?.debounce(applyFilters, 300) || applyFilters);
     }
     if (filterType) filterType.addEventListener('change', applyFilters);
     if (filterSeverity) filterSeverity.addEventListener('change', applyFilters);
+    if (filterNewIssues) filterNewIssues.addEventListener('change', applyFilters);
     const currentSortBy = document.getElementById('currentSortBy').value;
     const currentSortOrder = document.getElementById('currentSortOrder').value;
 

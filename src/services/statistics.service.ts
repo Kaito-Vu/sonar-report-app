@@ -57,5 +57,3 @@ export class StatisticsService extends BaseService {
     return { byType: statsType, bySeverity: statsSeverity };
   }
 }
-
-

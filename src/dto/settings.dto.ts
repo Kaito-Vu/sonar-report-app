@@ -12,4 +12,3 @@ export class SettingsDto {
   @MaxLength(500)
   token: string;
 }
-

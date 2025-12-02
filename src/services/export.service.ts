@@ -19,7 +19,6 @@ export class ExportService {
     private statisticsService: StatisticsService,
   ) {}
 
-
   async exportHtml(reportId: string, res: Response) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
@@ -326,9 +325,14 @@ export class ExportService {
           .font(fontRegular)
           .fontSize(8)
           .fillColor('#333')
-          .text(StringUtil.breakLongText(issue.fileName), cols[3].x + 5, y + 4, {
-            width: cols[3].w,
-          });
+          .text(
+            StringUtil.breakLongText(issue.fileName),
+            cols[3].x + 5,
+            y + 4,
+            {
+              width: cols[3].w,
+            },
+          );
         doc
           .fillColor('#000')
           .fontSize(9)

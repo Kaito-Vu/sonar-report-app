@@ -8,21 +8,29 @@ export class ProjectController {
   @Get()
   @Render('projects')
   async index() {
-    const projects = await this.prisma.project.findMany({ orderBy: { createdAt: 'desc' } });
+    const projects = await this.prisma.project.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
     return { projects };
   }
 
   @Post()
   async create(@Body() body: { name: string; key: string }, @Res() res) {
     if (body.name && body.key) {
-      await this.prisma.project.create({ data: { name: body.name, key: body.key.trim() } });
+      await this.prisma.project.create({
+        data: { name: body.name, key: body.key.trim() },
+      });
     }
     return res.redirect('/projects');
   }
 
   @Post('delete')
   async delete(@Body() body: { id: string }, @Res() res) {
-    try { await this.prisma.project.delete({ where: { id: parseInt(body.id) } }); } catch(e){}
+    try {
+      await this.prisma.project.delete({ where: { id: parseInt(body.id) } });
+    } catch {
+      // Ignore deletion errors
+    }
     return res.redirect('/projects');
   }
 }

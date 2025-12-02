@@ -15,7 +15,9 @@
       "Bash(findstr:*)",
       "Bash(timeout 5 npm start:*)",
       "Bash(npx prisma:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(test:*)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []

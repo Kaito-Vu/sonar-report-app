@@ -142,16 +142,9 @@ export class ReportService extends BaseService {
   /**
    * Build orderBy clause based on sort parameters
    */
-  private buildOrderBy(
-    sortBy: string,
-    sortOrder: 'asc' | 'desc',
-  ): any {
+  private buildOrderBy(sortBy: string, sortOrder: 'asc' | 'desc'): any {
     if (sortBy === 'default') {
-      return [
-        { typeIdx: 'asc' },
-        { severityIdx: 'asc' },
-        { fileLine: 'asc' },
-      ];
+      return [{ typeIdx: 'asc' }, { severityIdx: 'asc' }, { fileLine: 'asc' }];
     }
 
     if (sortBy === 'severity') {
@@ -166,4 +159,3 @@ export class ReportService extends BaseService {
     return { [sortBy]: sortOrder };
   }
 }
-

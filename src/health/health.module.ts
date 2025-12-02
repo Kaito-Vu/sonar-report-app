@@ -9,4 +9,3 @@ import { PrismaService } from '../prisma.service';
   providers: [PrismaService],
 })
 export class HealthModule {}
-

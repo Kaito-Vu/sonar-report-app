@@ -7,7 +7,10 @@ export const winstonConfig = {
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.timestamp(),
-        utilities.format.nestLike('SonarApp', { colors: true, prettyPrint: true }),
+        utilities.format.nestLike('SonarApp', {
+          colors: true,
+          prettyPrint: true,
+        }),
       ),
     }),
     new winston.transports.DailyRotateFile({
@@ -16,7 +19,10 @@ export const winstonConfig = {
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d',
-      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json(),
+      ),
     }),
   ],
 };

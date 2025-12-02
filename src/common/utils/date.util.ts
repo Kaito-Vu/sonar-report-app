@@ -10,10 +10,10 @@ export class DateUtil {
    */
   static formatToVietnamese(date: Date | string | null | undefined): string {
     if (!date) return 'Chưa có';
-    
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return 'Invalid date';
-    
+
     return dateObj.toLocaleString(this.DEFAULT_LOCALE, {
       timeZone: this.DEFAULT_TIMEZONE,
     });
@@ -24,10 +24,10 @@ export class DateUtil {
    */
   static formatToISO(date: Date | string | null | undefined): string {
     if (!date) return '';
-    
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return '';
-    
+
     return dateObj.toISOString();
   }
 
@@ -39,10 +39,10 @@ export class DateUtil {
     options: Intl.DateTimeFormatOptions = {},
   ): string {
     if (!date) return '';
-    
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return '';
-    
+
     return dateObj.toLocaleString(this.DEFAULT_LOCALE, {
       timeZone: this.DEFAULT_TIMEZONE,
       ...options,
@@ -54,10 +54,10 @@ export class DateUtil {
    */
   static getTimestamp(date: Date | string | null | undefined): number {
     if (!date) return 0;
-    
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return 0;
-    
+
     return dateObj.getTime();
   }
 
@@ -66,10 +66,8 @@ export class DateUtil {
    */
   static isValid(date: Date | string | null | undefined): boolean {
     if (!date) return false;
-    
+
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     return !isNaN(dateObj.getTime());
   }
 }
-
-

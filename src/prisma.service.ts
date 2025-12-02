@@ -13,7 +13,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
 
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
-    
+
     super({ adapter });
   }
 

@@ -9,4 +9,3 @@ export class SyncAnalysisDto {
   @IsNotEmpty()
   date: string;
 }
-

@@ -8,10 +8,7 @@ export abstract class BaseService {
   protected readonly logger: Logger;
   protected readonly prisma: PrismaService;
 
-  constructor(
-    serviceName: string,
-    prisma: PrismaService,
-  ) {
+  constructor(serviceName: string, prisma: PrismaService) {
     this.logger = new Logger(serviceName);
     this.prisma = prisma;
   }
@@ -20,12 +17,27 @@ export abstract class BaseService {
    * Handle service errors consistently
    */
   protected handleError(error: unknown, context: string): never {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
+    if (error instanceof Error) {
+      this.logger.error(`${context}: ${error.message}`, error.stack);
+      throw error;
+    }
 
-    this.logger.error(`${context}: ${errorMessage}`, errorStack);
-    throw error instanceof Error ? error : new Error(String(error));
+    let errorMessage: string;
+    if (typeof error === 'object' && error !== null) {
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = 'Unknown error (non-serializable)';
+      }
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (typeof error === 'number' || typeof error === 'boolean') {
+      errorMessage = String(error);
+    } else {
+      errorMessage = 'Unknown error';
+    }
+    this.logger.error(`${context}: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 
   /**
@@ -46,5 +58,3 @@ export abstract class BaseService {
     );
   }
 }
-
-

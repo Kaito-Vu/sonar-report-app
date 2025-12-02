@@ -9,7 +9,7 @@ export class SonarService {
 
   constructor(
     private httpService: HttpService,
-    private prisma: PrismaService
+    private prisma: PrismaService,
   ) {}
 
   private async getConfig() {
@@ -23,15 +23,17 @@ export class SonarService {
 
   // 1. Lấy thông tin Rule (Caching)
   async getRuleDetails(ruleKey: string) {
-    const cachedRule = await this.prisma.sonarRule.findUnique({ where: { key: ruleKey } });
+    const cachedRule = await this.prisma.sonarRule.findUnique({
+      where: { key: ruleKey },
+    });
     if (cachedRule) return cachedRule;
 
     try {
       const { url, token } = await this.getConfig();
       const res = await lastValueFrom(
         this.httpService.get(`${url}/api/rules/show?key=${ruleKey}`, {
-          auth: { username: token, password: '' }
-        })
+          auth: { username: token, password: '' },
+        }),
       );
       const rule = res.data.rule;
 
@@ -41,13 +43,18 @@ export class SonarService {
           name: rule.name,
           htmlDesc: rule.htmlDesc || '',
           mdDesc: rule.mdDesc || '',
-          isExternal: ruleKey.startsWith('external_')
-        }
+          isExternal: ruleKey.startsWith('external_'),
+        },
       });
     } catch (e) {
       if (e.response?.status === 404) {
         return await this.prisma.sonarRule.create({
-          data: { key: ruleKey, name: 'External/Unknown Rule', htmlDesc: '', isExternal: true }
+          data: {
+            key: ruleKey,
+            name: 'External/Unknown Rule',
+            htmlDesc: '',
+            isExternal: true,
+          },
         });
       }
       return null;
@@ -60,10 +67,14 @@ export class SonarService {
       const { url, token } = await this.getConfig();
       const endpoint = `${url}/api/sources/lines?key=${projectKey}:${filePath}&from=${Math.max(1, line - 5)}&to=${line + 5}`;
       const res = await lastValueFrom(
-        this.httpService.get(endpoint, { auth: { username: token, password: '' } })
+        this.httpService.get(endpoint, {
+          auth: { username: token, password: '' },
+        }),
       );
       return res.data.sources;
-    } catch (e) { return null; }
+    } catch {
+      return null;
+    }
   }
 
   // 3. Lấy Lịch sử Scan (Project Analyses)
@@ -73,12 +84,16 @@ export class SonarService {
       const endpoint = `${url}/api/project_analyses/search?project=${encodeURIComponent(projectKey)}`;
 
       const response = await lastValueFrom(
-        this.httpService.get(endpoint, { auth: { username: token, password: '' } })
+        this.httpService.get(endpoint, {
+          auth: { username: token, password: '' },
+        }),
       );
       return response.data.analyses || [];
     } catch (error) {
       if (error.response?.status === 404) {
-        throw new Error(`Project Key "${projectKey}" không tồn tại trên SonarQube.`);
+        throw new Error(
+          `Project Key "${projectKey}" không tồn tại trên SonarQube.`,
+        );
       }
 
       // Better error logging
@@ -86,7 +101,9 @@ export class SonarService {
         const { url } = await this.getConfig();
         this.logger.error(`❌ Không thể kết nối tới SonarQube server: ${url}`);
         this.logger.error(`   Error: ${error.message}`);
-        this.logger.error(`   Vui lòng kiểm tra: 1) Server có đang chạy? 2) URL/Port có đúng? 3) Network/Firewall`);
+        this.logger.error(
+          `   Vui lòng kiểm tra: 1) Server có đang chạy? 2) URL/Port có đúng? 3) Network/Firewall`,
+        );
       } else {
         this.logger.error(`Lỗi lấy lịch sử scan: ${error.message}`);
       }
@@ -113,17 +130,23 @@ export class SonarService {
           auth: { username: token, password: '' },
           responseType: 'arraybuffer',
           timeout: 60000, // 60 seconds for large files
-        })
+        }),
       );
 
       return Buffer.from(response.data);
     } catch (error) {
       if (error.code === 'ETIMEDOUT') {
-        this.logger.error(`❌ Timeout khi tải file từ SonarQube: ${error.message}`);
-        throw new Error(`Timeout khi tải file. Server SonarQube có thể không khả dụng.`);
+        this.logger.error(
+          `❌ Timeout khi tải file từ SonarQube: ${error.message}`,
+        );
+        throw new Error(
+          `Timeout khi tải file. Server SonarQube có thể không khả dụng.`,
+        );
       }
       this.logger.error(`Download Error: ${error.message}`);
-      throw new Error(`Lỗi tải file từ SonarQube. Kiểm tra lại Key "${projectKey}".`);
+      throw new Error(
+        `Lỗi tải file từ SonarQube. Kiểm tra lại Key "${projectKey}".`,
+      );
     }
   }
 }

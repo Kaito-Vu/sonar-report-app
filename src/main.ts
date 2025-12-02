@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { LoggingInterceptor } from './logging.interceptor';
 
-// Dùng require để tránh lỗi type với thư viện cũ
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const hbs = require('hbs');
 
 async function bootstrap() {
@@ -52,4 +52,4 @@ async function bootstrap() {
   await app.listen(3000);
   console.log(`Application is running on: http://localhost:3000`);
 }
-bootstrap();
+void bootstrap();

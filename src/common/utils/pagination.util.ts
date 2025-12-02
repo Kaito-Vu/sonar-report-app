@@ -34,7 +34,7 @@ export class PaginationUtil {
   } {
     const minPageSize = options.minPageSize || 1;
     const maxPageSize = options.maxPageSize || 500;
-    
+
     const page = Math.max(1, options.page);
     const pageSize = Math.max(
       minPageSize,
@@ -99,5 +99,3 @@ export class PaginationUtil {
     }));
   }
 }
-
-

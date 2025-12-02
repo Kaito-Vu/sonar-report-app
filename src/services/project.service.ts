@@ -161,7 +161,9 @@ export class ProjectService extends BaseService {
   /**
    * Get project with scan history from SonarQube
    */
-  async getProjectWithHistory(projectId: number): Promise<ProjectHistoryResult> {
+  async getProjectWithHistory(
+    projectId: number,
+  ): Promise<ProjectHistoryResult> {
     this.logStart('getProjectWithHistory', { projectId });
 
     const project = await this.getProjectById(projectId);
@@ -239,5 +241,3 @@ export class ProjectService extends BaseService {
     };
   }
 }
-
-

@@ -6,4 +6,3 @@ export class DeleteProjectDto {
   @IsNumberString()
   id: string;
 }
-
