@@ -16,13 +16,27 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Dark mode scrollbar */
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    
+    /* Skeleton loading animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
 
-<nav class="flex-none bg-white border-b border-slate-200 z-30 shadow-sm">
+<nav class="flex-none bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 z-30 shadow-sm">
   <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-    <a href="/" class="flex items-center gap-3 text-slate-800 hover:text-indigo-600 transition group">
+    <a href="/" class="flex items-center gap-3 text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition group">
       <div class="bg-indigo-600 text-white p-1.5 rounded-lg group-hover:bg-indigo-700 transition">
         <span class="iconify w-6 h-6" data-icon="simple-icons:sonarqube"></span>
       </div>
@@ -30,12 +44,18 @@
     </a>
 
     <div class="flex items-center gap-4">
-      <a href="/settings" class="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 transition" title="Cấu hình hệ thống">
+      <button id="darkModeToggle" onclick="window.darkMode?.toggle()" class="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Dark Mode (Ctrl+Shift+D)">
+        <span class="iconify w-5 h-5" data-icon="mdi:weather-night"></span>
+      </button>
+      <button onclick="window.shortcuts?.showHelp()" class="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Keyboard Shortcuts (?)">
+        <span class="iconify w-5 h-5" data-icon="mdi:keyboard"></span>
+      </button>
+      <a href="/settings" class="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Cấu hình hệ thống">
         <span class="iconify w-5 h-5" data-icon="mdi:cog-outline"></span>
       </a>
-      <div class="h-4 w-px bg-slate-200"></div>
+      <div class="h-4 w-px bg-slate-200 dark:bg-slate-700"></div>
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">AD</div>
+        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xs font-bold">AD</div>
       </div>
     </div>
   </div>
@@ -47,12 +67,138 @@
   </div>
 </main>
 
-<footer class="flex-none bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400 z-20">
+<footer class="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-3 text-center text-xs text-slate-400 dark:text-slate-500 z-20">
   <div class="max-w-screen-xl mx-auto px-4">
     &copy; 2025 Sonar Report System. Version 1.0.0
   </div>
 </footer>
 
+<!-- Confirm Modal -->
+<div id="confirmModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center" aria-modal="true">
+  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeConfirmModal()"></div>
+  <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
+    <div class="p-6">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+          <span class="iconify w-6 h-6 text-amber-600" data-icon="mdi:alert-circle-outline"></span>
+        </div>
+        <div class="flex-1">
+          <h3 id="confirmTitle" class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Xác nhận</h3>
+          <p id="confirmMessage" class="text-sm text-slate-600 dark:text-slate-300"></p>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600 flex justify-end gap-3 rounded-b-xl">
+      <button onclick="closeConfirmModal()" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+        Hủy
+      </button>
+      <button id="confirmOkBtn" onclick="executeConfirmAction()" class="px-4 py-2 text-sm font-bold text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition flex items-center gap-2">
+        <span class="iconify w-4 h-4" data-icon="mdi:check"></span>
+        Xác nhận
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[9998] space-y-2"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  // Confirm Modal Functions
+  let confirmCallback = null;
+  
+  function showConfirm(title, message, callback, okText = 'Xác nhận', okClass = 'bg-rose-600 hover:bg-rose-700') {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    const okBtn = document.getElementById('confirmOkBtn');
+    okBtn.textContent = okText;
+    okBtn.className = `px-4 py-2 text-sm font-bold text-white ${okClass} rounded-lg transition flex items-center gap-2`;
+    confirmCallback = callback;
+    document.getElementById('confirmModal').classList.remove('hidden');
+  }
+  
+  function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    confirmCallback = null;
+  }
+  
+  function executeConfirmAction() {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    closeConfirmModal();
+  }
+  
+  // Note: window.confirm is synchronous and cannot be properly overridden with async modal
+  // All code should use showConfirm() directly instead
+  
+  // Toast Notification Functions
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    const bgColors = {
+      success: 'bg-green-500',
+      error: 'bg-red-500',
+      warning: 'bg-amber-500',
+      info: 'bg-blue-500'
+    };
+    const icons = {
+      success: 'mdi:check-circle',
+      error: 'mdi:alert-circle',
+      warning: 'mdi:alert',
+      info: 'mdi:information'
+    };
+    
+    toast.className = `${bgColors[type] || bgColors.info} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md transform transition-all animate-slide-in`;
+    toast.innerHTML = `
+      <span class="iconify w-5 h-5 flex-shrink-0" data-icon="${icons[type] || icons.info}"></span>
+      <span class="flex-1 text-sm font-medium">${message}</span>
+      <button onclick="this.parentElement.remove()" class="flex-shrink-0 hover:bg-white/20 rounded p-1">
+        <span class="iconify w-4 h-4" data-icon="mdi:close"></span>
+      </button>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+  
+  // Replace browser alert with toast
+  window.alert = function(message) {
+    showToast(message, 'info');
+  };
+  
+  // Add CSS animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slide-in {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .animate-slide-in {
+      animation: slide-in 0.3s ease-out;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeConfirmModal();
+    }
+  });
+</script>
 </body>
 </html>

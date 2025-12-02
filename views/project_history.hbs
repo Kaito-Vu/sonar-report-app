@@ -2,27 +2,27 @@
 
 <div class="flex justify-between items-center mb-6">
   <div>
-    <a href="/" class="text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-1 text-sm transition"><span class="iconify" data-icon="mdi:arrow-left"></span> Dashboard</a>
-    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><span class="iconify text-indigo-600" data-icon="mdi:folder-open"></span> {{project.name}}</h2>
-    <p class="text-sm text-slate-500 font-mono flex items-center gap-1">Key: <span class="bg-slate-100 px-1 rounded">{{project.key}}</span></p>
+    <a href="/" class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 mb-1 text-sm transition"><span class="iconify" data-icon="mdi:arrow-left"></span> Dashboard</a>
+    <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><span class="iconify text-indigo-600 dark:text-indigo-400" data-icon="mdi:folder-open"></span> {{project.name}}</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1">Key: <span class="bg-slate-100 dark:bg-slate-700 px-1 rounded">{{project.key}}</span></p>
   </div>
   <div class="flex gap-2">
-    <button onclick="syncLatest({{project.id}})" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition">
+    <button onclick="syncLatest({{project.id}})" class="bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition">
       <span class="iconify" data-icon="mdi:cloud-refresh"></span> Kiểm tra & Mở Mới Nhất
     </button>
   </div>
 </div>
 
-{{#if apiError}}<div class="bg-rose-50 text-rose-700 p-4 rounded mb-6 border-l-4 border-rose-500">{{apiError}}</div>{{/if}}
+{{#if apiError}}<div class="bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 p-4 rounded mb-6 border-l-4 border-rose-500">{{apiError}}</div>{{/if}}
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-  <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 font-bold text-slate-700 flex justify-between items-center">
+<div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-200 flex justify-between items-center">
     <span>Lịch sử Quét (SonarQube History)</span>
-    <span class="text-xs text-slate-500 font-normal flex items-center gap-1"><span id="loadingIcon" class="iconify animate-spin" data-icon="mdi:loading"></span> Auto Update</span>
+    <span class="text-xs text-slate-500 dark:text-slate-400 font-normal flex items-center gap-1"><span id="loadingIcon" class="iconify animate-spin" data-icon="mdi:loading"></span> Auto Update</span>
   </div>
 
-  <table class="w-full text-left text-sm text-slate-600">
-    <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-semibold">
+  <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+    <thead class="bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300 uppercase text-xs font-semibold">
     <tr>
       <th class="px-6 py-3 w-48">Thời gian Scan</th>
       <th class="px-6 py-3">Version / Analysis ID</th>
@@ -30,18 +30,18 @@
       <th class="px-6 py-3 text-right w-48">Hành động</th>
     </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100" id="reportTableBody">
+    <tbody class="divide-y divide-slate-100 dark:divide-slate-700" id="reportTableBody">
     {{#each reports}}
-      <tr class="hover:bg-slate-50 transition group {{#if this.isLatest}}bg-indigo-50/30{{/if}}">
-        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-900 font-medium">
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition group {{#if this.isLatest}}bg-indigo-50/30 dark:bg-indigo-900/20{{/if}}">
+        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-900 dark:text-slate-100 font-medium">
           {{this.date}}
-          {{#if this.isLatest}}<span class="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200">NEW</span>{{/if}}
+          {{#if this.isLatest}}<span class="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold border border-indigo-200 dark:border-indigo-800">NEW</span>{{/if}}
         </td>
-        <td class="px-6 py-4 text-xs text-gray-500">
+        <td class="px-6 py-4 text-xs text-gray-500 dark:text-slate-400">
           {{#if (eq this.analysisKey 'MANUAL')}}Thủ công{{else}}
             <div class="flex flex-col">
-              <span class="font-bold text-slate-700">{{this.version}}</span>
-              <span class="font-mono text-[10px] text-slate-500 select-all">{{this.analysisKey}}</span>
+              <span class="font-bold text-slate-700 dark:text-slate-200">{{this.version}}</span>
+              <span class="font-mono text-[10px] text-slate-500 dark:text-slate-400 select-all">{{this.analysisKey}}</span>
             </div>
           {{/if}}
         </td>
@@ -58,9 +58,9 @@
               {{#if (eq this.status 'COMPLETED')}}
                 <a href="/report/{{this.localReportId}}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline flex items-center gap-1 text-xs border border-indigo-100 bg-indigo-50 px-3 py-1.5 rounded transition shadow-sm">Xem KQ <span class="iconify" data-icon="mdi:arrow-right"></span></a>
               {{/if}}
-              <button onclick="deleteReport('{{this.localReportId}}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded hover:bg-rose-50 transition" title="Xóa"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
+              <button onclick="deleteReport('{{this.localReportId}}')" class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 transition" title="Xóa"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
             {{else}}
-              <button onclick="syncSpecific('{{this.analysisKey}}', '{{this.date}}')" class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1">
+              <button onclick="syncSpecific('{{this.analysisKey}}', '{{this.date}}')" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1">
                 <span class="iconify" data-icon="mdi:download"></span> Tải về
               </button>
             {{/if}}
@@ -76,40 +76,107 @@
   const projectId = {{project.id}};
 
   async function syncLatest(id) {
-    const btn = event.currentTarget; btn.disabled = true; btn.innerHTML = 'Processing...';
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="iconify animate-spin" data-icon="mdi:loading"></span> Processing...';
+
     try {
+      console.log('Syncing project:', id);
       const res = await fetch(`/projects/${id}/sync`, { method: 'POST' });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
       const data = await res.json();
+      console.log('Sync response:', data);
+
       if (data.success) {
-        if (data.action === 'REDIRECT') window.location.href = `/report/${data.reportId}`;
-        else { alert(data.message); location.reload(); }
-      } else alert('❌ ' + data.message);
-    } catch(e) { alert('Lỗi.'); } finally { btn.disabled = false; btn.innerHTML = 'Kiểm tra & Mở Mới Nhất'; }
+        if (data.action === 'REDIRECT') {
+          showToast('Đang mở báo cáo...', 'success');
+          setTimeout(() => window.location.href = `/report/${data.reportId}`, 500);
+        } else {
+          showToast(data.message || 'Đã bắt đầu đồng bộ!', 'success');
+          setTimeout(() => location.reload(), 1000);
+        }
+      } else {
+        showToast('❌ ' + (data.message || 'Lỗi không xác định'), 'error');
+      }
+    } catch(e) {
+      console.error('Sync error:', e);
+      showToast('❌ Lỗi: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="iconify" data-icon="mdi:cloud-refresh"></span> Kiểm tra & Mở Mới Nhất';
+    }
   }
 
   async function syncSpecific(key, date) {
-    if(!confirm(`Tải báo cáo cho Analysis ID: ${key}?`)) return;
-    try {
-      const res = await fetch(`/projects/${projectId}/sync-analysis`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ analysisKey: key, date: date })
-      });
-      const data = await res.json();
-      if (data.success) {
-        if(data.action === 'REDIRECT') window.location.href = `/report/${data.reportId}`;
-        else { alert(data.message); location.reload(); }
-      } else alert('❌ ' + data.message);
-    } catch(e) { alert('Lỗi kết nối.'); }
+    showConfirm('Tải báo cáo', `Tải báo cáo cho Analysis ID: ${key}?`, async () => {
+      try {
+        const res = await fetch(`/projects/${projectId}/sync-analysis`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ analysisKey: key, date: date })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if(data.action === 'REDIRECT') window.location.href = `/report/${data.reportId}`;
+          else { 
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+          }
+        } else showToast('❌ ' + data.message, 'error');
+      } catch(e) { 
+        showToast('Lỗi kết nối.', 'error');
+      }
+    }, 'Tải về', 'bg-indigo-600 hover:bg-indigo-700');
   }
 
   async function deleteReport(id) {
-    if(!confirm("Xóa?")) return;
-    await fetch(`/api/report/${id}`, { method: 'DELETE' });
-    location.reload();
+    showConfirm('Xóa báo cáo', 'Bạn có chắc muốn xóa báo cáo này? Hành động này không thể hoàn tác.', async () => {
+      try {
+        await fetch(`/api/report/${id}`, { method: 'DELETE' });
+        showToast('Đã xóa báo cáo thành công', 'success');
+        setTimeout(() => location.reload(), 1000);
+      } catch(e) {
+        showToast('Lỗi khi xóa báo cáo', 'error');
+      }
+    });
   }
 
-  setTimeout(() => {
-    if(document.body.innerText.includes('QUEUED') || document.body.innerText.includes('PROCESSING')) window.location.reload();
-  }, 5000);
+  // Real-time status updates
+  let statusCheckInterval = null;
+
+  function startStatusPolling() {
+    if (statusCheckInterval) return;
+    
+    statusCheckInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/project/${projectId}/status`);
+        const data = await res.json();
+        
+        if (data.hasProcessing) {
+          // Reload page if status changed
+          location.reload();
+        } else {
+          stopStatusPolling();
+        }
+      } catch (e) {
+        console.error('Status check error:', e);
+      }
+    }, 5000);
+  }
+
+  function stopStatusPolling() {
+    if (statusCheckInterval) {
+      clearInterval(statusCheckInterval);
+      statusCheckInterval = null;
+    }
+  }
+
+  // Start polling if there are processing reports
+  if (document.body.innerText.includes('QUEUED') || document.body.innerText.includes('PROCESSING')) {
+    startStatusPolling();
+  }
 </script>

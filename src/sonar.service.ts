@@ -77,8 +77,20 @@ export class SonarService {
       );
       return response.data.analyses || [];
     } catch (error) {
-      if (error.response?.status === 404) throw new Error(`Project Key "${projectKey}" không tồn tại trên SonarQube.`);
-      this.logger.error(`Lỗi lấy lịch sử scan: ${error.message}`);
+      if (error.response?.status === 404) {
+        throw new Error(`Project Key "${projectKey}" không tồn tại trên SonarQube.`);
+      }
+
+      // Better error logging
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        const { url } = await this.getConfig();
+        this.logger.error(`❌ Không thể kết nối tới SonarQube server: ${url}`);
+        this.logger.error(`   Error: ${error.message}`);
+        this.logger.error(`   Vui lòng kiểm tra: 1) Server có đang chạy? 2) URL/Port có đúng? 3) Network/Firewall`);
+      } else {
+        this.logger.error(`Lỗi lấy lịch sử scan: ${error.message}`);
+      }
+
       return [];
     }
   }
@@ -99,12 +111,17 @@ export class SonarService {
       const response = await lastValueFrom(
         this.httpService.get(endpoint, {
           auth: { username: token, password: '' },
-          responseType: 'arraybuffer'
+          responseType: 'arraybuffer',
+          timeout: 60000, // 60 seconds for large files
         })
       );
 
       return Buffer.from(response.data);
     } catch (error) {
+      if (error.code === 'ETIMEDOUT') {
+        this.logger.error(`❌ Timeout khi tải file từ SonarQube: ${error.message}`);
+        throw new Error(`Timeout khi tải file. Server SonarQube có thể không khả dụng.`);
+      }
       this.logger.error(`Download Error: ${error.message}`);
       throw new Error(`Lỗi tải file từ SonarQube. Kiểm tra lại Key "${projectKey}".`);
     }

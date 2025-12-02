@@ -33,24 +33,146 @@ export class ReportProcessor extends WorkerHost {
       const csvPath = await this.findFile(extractPath, 'open_findings_on_overall_code.csv');
       if (!csvPath) throw new Error('CSV not found');
 
-      const issuesBatch = [];
+      // Get projectId from report
+      const report = await this.prisma.report.findUnique({ where: { id: reportId }, select: { projectId: true } });
+      if (!report?.projectId) throw new Error('Report must be linked to a project');
+
+      // PHASE 1: Read all issues from CSV into memory
+      this.logger.log(`Reading CSV file...`);
       const stream = fs.createReadStream(csvPath).pipe(csv());
+      const issuesFromCSV = [];
 
       for await (const row of stream) {
         let tIdx = this.TYPE_ORDER.indexOf(row['Type']); if (tIdx === -1) tIdx = 99;
         let sIdx = this.SEVERITY_ORDER.indexOf(row['Severity']); if (sIdx === -1) sIdx = 99;
 
-        issuesBatch.push({
-          reportId,
-          message: row['Message'], type: row['Type'], severity: row['Severity'],
-          ruleKey: row['Rule Key'], ruleName: row['Rule Name'],
-          fileName: row['File Name'], fileLine: row['File Line'] ? parseInt(row['File Line']) : 0,
-          typeIdx: tIdx, severityIdx: sIdx
+        const ruleKey = row['Rule Key'] || '';
+        const fileName = row['File Name'] || '';
+        const fileLine = row['File Line'] ? parseInt(row['File Line']) : 0;
+        const lineGroup = Math.floor(fileLine / 10) * 10;
+
+        issuesFromCSV.push({
+          ruleKey,
+          fileName,
+          fileLine,
+          lineGroup,
+          message: row['Message'],
+          type: row['Type'],
+          severity: row['Severity'],
+          ruleName: row['Rule Name'],
+          typeIdx: tIdx,
+          severityIdx: sIdx
+        });
+      }
+
+      this.logger.log(`Found ${issuesFromCSV.length} issues in CSV`);
+
+      // PHASE 2: Query existing UniqueIssues for this project
+      this.logger.log(`Querying existing unique issues...`);
+      const existingIssues = await this.prisma.uniqueIssue.findMany({
+        where: { projectId: report.projectId },
+        select: { id: true, ruleKey: true, fileName: true, lineGroup: true }
+      });
+
+      // Create lookup map for fast checking
+      const existingMap = new Map();
+      existingIssues.forEach(issue => {
+        const key = `${issue.ruleKey}|${issue.fileName}|${issue.lineGroup}`;
+        existingMap.set(key, issue.id);
+      });
+
+      this.logger.log(`Found ${existingIssues.length} existing unique issues`);
+
+      // PHASE 3: Separate new issues from existing ones
+      const newIssues = [];
+      const issueOccurrences = [];
+      const existingIssueIds = new Set();
+
+      for (const issue of issuesFromCSV) {
+        const key = `${issue.ruleKey}|${issue.fileName}|${issue.lineGroup}`;
+        const existingId = existingMap.get(key);
+
+        if (existingId) {
+          // Existing issue - just track for occurrence
+          issueOccurrences.push({
+            uniqueIssueId: existingId,
+            reportId
+          });
+          existingIssueIds.add(existingId);
+        } else {
+          // New issue - need to create
+          newIssues.push({
+            projectId: report.projectId,
+            ...issue
+          });
+        }
+      }
+
+      this.logger.log(`New issues: ${newIssues.length}, Existing: ${issuesFromCSV.length - newIssues.length}`);
+
+      // PHASE 4: Batch insert new UniqueIssues
+      if (newIssues.length > 0) {
+        this.logger.log(`Creating ${newIssues.length} new unique issues...`);
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < newIssues.length; i += BATCH_SIZE) {
+          const batch = newIssues.slice(i, i + BATCH_SIZE);
+          await this.prisma.uniqueIssue.createMany({
+            data: batch,
+            skipDuplicates: true
+          });
+        }
+
+        // Re-query to get IDs for new issues
+        this.logger.log(`Fetching IDs for new issues...`);
+        const newlyCreated = await this.prisma.uniqueIssue.findMany({
+          where: {
+            projectId: report.projectId,
+            OR: newIssues.map(iss => ({
+              ruleKey: iss.ruleKey,
+              fileName: iss.fileName,
+              lineGroup: iss.lineGroup
+            }))
+          },
+          select: { id: true, ruleKey: true, fileName: true, lineGroup: true }
         });
 
-        if (issuesBatch.length >= 1000) { await this.prisma.issue.createMany({ data: issuesBatch }); issuesBatch.length = 0; }
+        // Add occurrences for newly created issues
+        newlyCreated.forEach(issue => {
+          issueOccurrences.push({
+            uniqueIssueId: issue.id,
+            reportId
+          });
+        });
       }
-      if (issuesBatch.length > 0) await this.prisma.issue.createMany({ data: issuesBatch });
+
+      // PHASE 5: Batch insert IssueOccurrences + Update lastSeenAt
+      this.logger.log(`Creating ${issueOccurrences.length} issue occurrences...`);
+      const OCCURRENCE_BATCH_SIZE = 1000;
+      for (let i = 0; i < issueOccurrences.length; i += OCCURRENCE_BATCH_SIZE) {
+        const batch = issueOccurrences.slice(i, i + OCCURRENCE_BATCH_SIZE);
+        await this.prisma.issueOccurrence.createMany({
+          data: batch,
+          skipDuplicates: true
+        });
+      }
+
+      // Update lastSeenAt for existing issues in batches
+      if (existingIssueIds.size > 0) {
+        this.logger.log(`Updating lastSeenAt for ${existingIssueIds.size} existing issues...`);
+        const existingIdsArray = Array.from(existingIssueIds) as number[];
+        const UPDATE_BATCH_SIZE = 5000; // PostgreSQL param limit is ~32k
+
+        for (let i = 0; i < existingIdsArray.length; i += UPDATE_BATCH_SIZE) {
+          const batch = existingIdsArray.slice(i, i + UPDATE_BATCH_SIZE);
+          await this.prisma.uniqueIssue.updateMany({
+            where: { id: { in: batch } },
+            data: { lastSeenAt: new Date() }
+          });
+        }
+      }
+
+      this.logger.log(`Processing completed successfully`);
+
 
       // [QUAN TRỌNG] Update thành COMPLETED
       await this.prisma.report.update({ where: { id: reportId }, data: { status: 'COMPLETED' } });

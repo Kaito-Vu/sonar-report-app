@@ -29,6 +29,16 @@ async function bootstrap() {
     return a === b;
   });
 
+  // Helper so sánh lớn hơn: {{#if (gt a b)}}
+  hbs.registerHelper('gt', function (a, b) {
+    return a > b;
+  });
+
+  // Helper so sánh nhỏ hơn: {{#if (lt a b)}}
+  hbs.registerHelper('lt', function (a, b) {
+    return a < b;
+  });
+
   // Helper logic AND: {{#if (and a b)}}
   hbs.registerHelper('and', function (a, b) {
     return a && b;

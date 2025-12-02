@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npx prisma validate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(if not exist \"test\" mkdir test)",
+      "Bash(del:*)",
+      "Bash(dir:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npm start)",
+      "Bash(findstr:*)",
+      "Bash(timeout 5 npm start:*)",
+      "Bash(npx prisma:*)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

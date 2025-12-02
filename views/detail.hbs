@@ -1,19 +1,19 @@
 {{!< layout}}
 
-<div class="h-full flex flex-col p-4 space-y-4">
+<div class="h-full flex flex-col p-4 space-y-4 dark:text-slate-200">
 
   <div class="flex-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
-      <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
-        <a href="/" class="hover:text-indigo-600 transition">Trang chủ</a>
+      <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-1">
+        <a href="/" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition">Trang chủ</a>
         <span class="iconify text-xs" data-icon="mdi:chevron-right"></span>
-        <a href="/project/{{report.project.id}}" class="hover:text-indigo-600 transition">Lịch sử</a>
+        <a href="/project/{{report.project.id}}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition">Lịch sử</a>
         <span class="iconify text-xs" data-icon="mdi:chevron-right"></span>
-        <span class="text-slate-800 font-medium">Chi tiết</span>
+        <span class="text-slate-800 dark:text-slate-200 font-medium">Chi tiết</span>
       </div>
       <div class="flex items-center gap-3">
-        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">{{report.filename}}</h2>
-        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 font-mono">
+        <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 tracking-tight">{{report.filename}}</h2>
+        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 font-mono">
           {{report.project.key}}
         </span>
       </div>
@@ -23,31 +23,83 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mr-2 hidden md:block">Xuất file</div>
-      <a href="/report/{{report.id}}/export?type=html" target="_blank" class="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:border-indigo-500 hover:text-indigo-600 px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
+      <div class="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mr-2 hidden md:block">Xuất file</div>
+      <button onclick="exportReport('html')" class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-indigo-500 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
         <span class="iconify text-lg" data-icon="mdi:language-html5"></span> HTML
-      </a>
-      <a href="/report/{{report.id}}/export?type=pdf" target="_blank" class="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
+      </button>
+      <button onclick="exportReport('pdf')" class="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm">
         <span class="iconify text-lg" data-icon="mdi:file-pdf-box"></span> PDF
-      </a>
+      </button>
     </div>
   </div>
 
-  <div class="flex-none bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all" id="dashboardContainer">
+  <div class="flex-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden transition-all" id="dashboardContainer">
 
-    <div class="bg-slate-50 px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition border-b border-slate-200 select-none" onclick="toggleDashboard()">
-      <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+    <div class="bg-slate-50 dark:bg-slate-700 px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition border-b border-slate-200 dark:border-slate-600 select-none" onclick="toggleDashboard()">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 text-sm uppercase tracking-wide">
         <span class="iconify" data-icon="mdi:chart-box-outline"></span> Tổng quan thống kê
       </h3>
-      <div class="flex items-center gap-2 text-xs text-slate-500">
+      <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
         <span id="dashStateText">Thu gọn</span>
         <span id="dashIcon" class="iconify transition-transform duration-300 rotate-180" data-icon="mdi:chevron-down"></span>
       </div>
     </div>
 
-    <div id="dashboardContent" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white">
+    <div id="dashboardContent" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-800">
+      
+      {{#if comparison}}
+      <!-- Comparison Card -->
+      <div class="md:col-span-2 border border-indigo-200 dark:border-indigo-800 rounded-lg overflow-hidden bg-indigo-50/50 dark:bg-indigo-900/20">
+        <div class="p-4 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-100 dark:bg-indigo-900/30">
+          <h4 class="font-bold text-sm text-indigo-900 dark:text-indigo-200 flex items-center gap-2">
+            <span class="iconify" data-icon="mdi:chart-line"></span>
+            So sánh với báo cáo trước
+            <a href="/report/{{comparison.previousReportId}}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline ml-auto">
+              Xem báo cáo trước
+            </a>
+          </h4>
+        </div>
+        <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="text-center">
+            <p class="text-xs text-slate-600 dark:text-slate-400 mb-1">Tổng Issues</p>
+            <p class="text-2xl font-bold {{#if (gt comparison.diff 0)}}text-rose-600 dark:text-rose-400{{else}}{{#if (lt comparison.diff 0)}}text-green-600 dark:text-green-400{{else}}text-slate-600 dark:text-slate-400{{/if}}{{/if}}">
+              {{comparison.currentTotal}}
+              {{#if comparison.diff}}
+                <span class="text-sm ml-1">
+                  ({{#if (gt comparison.diff 0)}}+{{/if}}{{comparison.diff}})
+                </span>
+              {{/if}}
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
+              Trước: {{comparison.previousTotal}}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-slate-600 dark:text-slate-400 mb-1">Thay đổi</p>
+            <p class="text-2xl font-bold {{#if (gt comparison.diff 0)}}text-rose-600 dark:text-rose-400{{else}}{{#if (lt comparison.diff 0)}}text-green-600 dark:text-green-400{{else}}text-slate-600 dark:text-slate-400{{/if}}{{/if}}">
+              {{#if (gt comparison.diff 0)}}
+                <span class="iconify inline" data-icon="mdi:arrow-up"></span>
+              {{else}}
+                {{#if (lt comparison.diff 0)}}
+                  <span class="iconify inline" data-icon="mdi:arrow-down"></span>
+                {{else}}
+                  <span class="iconify inline" data-icon="mdi:minus"></span>
+                {{/if}}
+              {{/if}}
+              {{comparison.diffPercent}}%
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-slate-600 dark:text-slate-400 mb-1">Báo cáo trước</p>
+            <p class="text-sm text-slate-700 dark:text-slate-300">
+              {{comparison.previousDate}}
+            </p>
+          </div>
+        </div>
+      </div>
+      {{/if}}
 
-      <div class="border border-slate-100 rounded-lg overflow-hidden">
+      <div class="border border-slate-100 dark:border-slate-700 rounded-lg overflow-hidden">
         <table class="w-full text-sm text-left">
           <thead class="bg-slate-50 text-xs text-slate-500 font-semibold uppercase">
           <tr>
@@ -55,9 +107,9 @@
             <th class="px-4 py-2 text-right">Số lượng</th>
           </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody class="divide-y divide-slate-50 dark:divide-slate-700">
           {{#each stats.byType}}
-            <tr class="hover:bg-slate-50 transition">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               <td class="px-4 py-2 font-medium flex items-center gap-2" style="color: {{this.color}}">
                 <span class="iconify w-4 h-4" data-icon="mdi:circle-slice-8"></span> {{this.label}}
               </td>
@@ -76,13 +128,26 @@
             <th class="px-4 py-2 text-right">Số lượng</th>
           </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody class="divide-y divide-slate-50 dark:divide-slate-700">
           {{#each stats.bySeverity}}
-            <tr class="hover:bg-slate-50 transition">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               <td class="px-4 py-2 font-medium flex items-center gap-2" style="color: {{this.color}}">
                 <span class="iconify w-4 h-4" data-icon="mdi:alert-circle-outline"></span> {{this.label}}
               </td>
-              <td class="px-4 py-2 text-right font-bold text-slate-800">{{this.count}}</td>
+              <td class="px-4 py-2 text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <span class="font-bold text-slate-800 dark:text-slate-200">{{this.count}}</span>
+                  {{#if ../comparison}}
+                    {{#with (lookup ../comparison.bySeverity @index)}}
+                      {{#if this.diff}}
+                        <span class="text-xs {{#if (gt this.diff 0)}}text-rose-600 dark:text-rose-400{{else}}text-green-600 dark:text-green-400{{/if}}">
+                          ({{#if (gt this.diff 0)}}+{{/if}}{{this.diff}})
+                        </span>
+                      {{/if}}
+                    {{/with}}
+                  {{/if}}
+                </div>
+              </td>
             </tr>
           {{/each}}
           </tbody>
@@ -91,19 +156,50 @@
     </div>
   </div>
 
-  <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-h-0 overflow-hidden">
+  <div class="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col min-h-0 overflow-hidden">
 
-    <div class="px-4 py-2 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs text-slate-500">
-            <span class="font-medium flex items-center gap-1">
-                <span class="iconify" data-icon="mdi:format-list-bulleted"></span>
-                Danh sách chi tiết lỗi ({{pagination.total}})
-            </span>
+    <!-- Filter Bar -->
+    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex flex-wrap gap-3 items-center">
+      <div class="flex-1 min-w-[200px]">
+        <input 
+          type="search" 
+          id="issueSearchInput" 
+          placeholder="Tìm kiếm issues..." 
+          class="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+        >
+        <span class="absolute left-6 top-1/2 transform -translate-y-1/2 iconify w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" data-icon="mdi:magnify"></span>
+      </div>
+      <select id="filterType" class="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        <option value="">Tất cả Type</option>
+        <option value="BUG">BUG</option>
+        <option value="VULNERABILITY">VULNERABILITY</option>
+        <option value="SECURITY_HOTSPOT">SECURITY_HOTSPOT</option>
+        <option value="CODE_SMELL">CODE_SMELL</option>
+      </select>
+      <select id="filterSeverity" class="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        <option value="">Tất cả Severity</option>
+        <option value="BLOCKER">BLOCKER</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="MAJOR">MAJOR</option>
+        <option value="MINOR">MINOR</option>
+        <option value="INFO">INFO</option>
+      </select>
+      <button onclick="clearFilters()" class="px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+        <span class="iconify w-4 h-4" data-icon="mdi:filter-off"></span> Xóa bộ lọc
+      </button>
+    </div>
+
+    <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+      <span class="font-medium flex items-center gap-1">
+        <span class="iconify" data-icon="mdi:format-list-bulleted"></span>
+        Danh sách chi tiết lỗi (<span id="filteredCount">{{pagination.total}}</span>)
+      </span>
       <span class="italic">Click tiêu đề cột để sắp xếp</span>
     </div>
 
     <div class="flex-1 overflow-y-auto custom-scrollbar">
       <table class="w-full text-left border-collapse table-fixed">
-        <thead class="bg-slate-800 text-slate-200 text-xs font-semibold uppercase tracking-wide sticky top-0 z-10 shadow-md">
+        <thead class="bg-slate-800 dark:bg-slate-900 text-slate-200 dark:text-slate-300 text-xs font-semibold uppercase tracking-wide sticky top-0 z-10 shadow-md">
         <tr>
           <th class="px-4 py-3 w-32 cursor-pointer hover:bg-slate-700 hover:text-white transition sort-header" data-sort="type">
             <div class="flex items-center gap-1">Type <span class="iconify text-slate-400 sort-icon" data-col="type" data-icon="mdi:unfold-more-horizontal"></span></div>
@@ -123,10 +219,15 @@
         </tr>
         </thead>
 
-        <tbody class="divide-y divide-slate-100 text-sm text-slate-600">
+        <tbody id="issuesTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm text-slate-600 dark:text-slate-300">
         {{#if issues.length}}
           {{#each issues}}
-            <tr class="hover:bg-slate-50 transition-colors duration-150 group">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150 group issue-row" 
+                data-type="{{this.type}}" 
+                data-severity="{{this.severity}}"
+                data-message="{{this.message}}"
+                data-file="{{this.fileName}}"
+                data-rule="{{this.ruleKey}}">
 
               <td class="px-4 py-3 align-top">
                 {{#if (eq this.type 'BUG')}}
@@ -194,11 +295,11 @@
       </table>
     </div>
 
-    <div class="flex-none bg-white border-t border-slate-200 px-4 py-3 flex flex-wrap gap-4 items-center justify-between text-sm text-slate-600 z-20">
+    <div class="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex flex-wrap gap-4 items-center justify-between text-sm text-slate-600 dark:text-slate-300 z-20">
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
-          <span class="pl-2 text-xs font-medium text-slate-500">Hiển thị</span>
-          <select id="pageSizeSelect" class="bg-transparent text-slate-700 text-xs font-bold outline-none cursor-pointer pr-1 py-1">
+        <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-700 p-1 rounded-lg border border-slate-200 dark:border-slate-600">
+          <span class="pl-2 text-xs font-medium text-slate-500 dark:text-slate-400">Hiển thị</span>
+          <select id="pageSizeSelect" class="bg-transparent dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold outline-none cursor-pointer pr-1 py-1">
             {{#each pagination.pageSizeOptions}}
               <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>
             {{/each}}
@@ -210,20 +311,20 @@
       </div>
 
       <div class="flex items-center gap-1">
-        <button onclick="changePage({{pagination.prevPage}})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50 transition" {{#unless pagination.hasPrev}}disabled{{/unless}}>
+        <button onclick="changePage({{pagination.prevPage}})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50 transition" {{#unless pagination.hasPrev}}disabled{{/unless}}>
           <span class="iconify" data-icon="mdi:chevron-left"></span>
         </button>
 
         <div class="flex items-center gap-1 px-2">
           <span>Trang</span>
           <input type="number" id="pageInput" value="{{pagination.page}}" min="1" max="{{pagination.totalPages}}"
-                 class="w-10 text-center text-xs border border-slate-200 rounded py-1 text-indigo-600 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
+                 class="w-10 text-center text-xs border border-slate-200 dark:border-slate-600 rounded py-1 bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
           <span>/ {{pagination.totalPages}}</span>
         </div>
 
         <button id="btnGoPage" class="px-2 text-[10px] font-bold uppercase text-slate-500 hover:text-indigo-600">Đi</button>
 
-        <button onclick="changePage({{pagination.nextPage}})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50 transition" {{#unless pagination.hasNext}}disabled{{/unless}}>
+        <button onclick="changePage({{pagination.nextPage}})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50 transition" {{#unless pagination.hasNext}}disabled{{/unless}}>
           <span class="iconify" data-icon="mdi:chevron-right"></span>
         </button>
       </div>
@@ -277,8 +378,60 @@
     }
   }
 
-  // ... (Phần logic Sort & Page giữ nguyên) ...
+  // Filter functionality
+  function applyFilters() {
+    const searchTerm = document.getElementById('issueSearchInput')?.value.toLowerCase() || '';
+    const filterType = document.getElementById('filterType')?.value || '';
+    const filterSeverity = document.getElementById('filterSeverity')?.value || '';
+    const rows = document.querySelectorAll('.issue-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const type = row.dataset.type || '';
+      const severity = row.dataset.severity || '';
+      const message = (row.dataset.message || '').toLowerCase();
+      const file = (row.dataset.file || '').toLowerCase();
+      const rule = (row.dataset.rule || '').toLowerCase();
+
+      const matchesSearch = !searchTerm || 
+        message.includes(searchTerm) || 
+        file.includes(searchTerm) || 
+        rule.includes(searchTerm);
+      const matchesType = !filterType || type === filterType;
+      const matchesSeverity = !filterSeverity || severity === filterSeverity;
+
+      const visible = matchesSearch && matchesType && matchesSeverity;
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+
+    const countEl = document.getElementById('filteredCount');
+    if (countEl) countEl.textContent = visibleCount;
+  }
+
+  function clearFilters() {
+    const searchInput = document.getElementById('issueSearchInput');
+    const filterType = document.getElementById('filterType');
+    const filterSeverity = document.getElementById('filterSeverity');
+    
+    if (searchInput) searchInput.value = '';
+    if (filterType) filterType.value = '';
+    if (filterSeverity) filterSeverity.value = '';
+    
+    applyFilters();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    // Filter event listeners
+    const searchInput = document.getElementById('issueSearchInput');
+    const filterType = document.getElementById('filterType');
+    const filterSeverity = document.getElementById('filterSeverity');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', window.searchFilter?.debounce(applyFilters, 300) || applyFilters);
+    }
+    if (filterType) filterType.addEventListener('change', applyFilters);
+    if (filterSeverity) filterSeverity.addEventListener('change', applyFilters);
     const currentSortBy = document.getElementById('currentSortBy').value;
     const currentSortOrder = document.getElementById('currentSortOrder').value;
 
@@ -306,6 +459,22 @@
 
     window.changePage = (page) => reloadPage({ page: page });
     document.getElementById('pageSizeSelect').addEventListener('change', (e) => reloadPage({ pageSize: e.target.value, page: 1 }));
+
+    // Export with progress
+    window.exportReport = function(type) {
+      const url = `/report/{{report.id}}/export?type=${type}`;
+      showToast(`Đang xuất file ${type.toUpperCase()}...`, 'info');
+      
+      // Open in new tab
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.click();
+      
+      setTimeout(() => {
+        showToast(`Đã xuất file ${type.toUpperCase()} thành công!`, 'success');
+      }, 1000);
+    };
 
     const handleGo = () => {
       let p = parseInt(document.getElementById('pageInput').value);

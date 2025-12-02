@@ -10,7 +10,10 @@ import { SonarService } from '../sonar.service';
 
 @Module({
   imports: [
-    HttpModule,
+    HttpModule.register({
+      timeout: 30000, // 30 seconds timeout
+      maxRedirects: 5,
+    }),
     BullModule.registerQueue({ name: 'report-queue' }),
   ],
   controllers: [ReportController, ProjectController],

@@ -93,7 +93,24 @@ export class ReportController {
       lastScan: p.reports[0] ? (p.reports[0].analysisDate?.toLocaleString('vi-VN') || p.reports[0].createdAt.toLocaleString('vi-VN')) : 'Chưa có',
       lastStatus: p.reports[0] ? p.reports[0].status : null
     }));
-    return { projects: projectsView };
+
+    // Analytics data
+    const totalProjects = projects.length;
+    const totalReports = await this.prisma.report.count({ where: { status: { not: 'DELETED' } } });
+    const totalIssues = await this.prisma.issue.count();
+    const completedReports = await this.prisma.report.count({ where: { status: 'COMPLETED' } });
+    const processingReports = await this.prisma.report.count({ where: { status: { in: ['QUEUED', 'PROCESSING'] } } });
+
+    return { 
+      projects: projectsView,
+      analytics: {
+        totalProjects,
+        totalReports,
+        totalIssues,
+        completedReports,
+        processingReports
+      }
+    };
   }
 
   @Post('projects')
@@ -174,6 +191,26 @@ export class ReportController {
     return { project, reports: finalHistory, apiError };
   }
 
+  @Get('api/project/:id/status')
+  async getProjectStatus(@Param('id') id: string) {
+    const projectId = parseInt(id);
+    const reports = await this.prisma.report.findMany({
+      where: { 
+        projectId,
+        status: { in: ['QUEUED', 'PROCESSING'] }
+      },
+      select: {
+        id: true,
+        status: true,
+      }
+    });
+
+    return {
+      hasProcessing: reports.length > 0,
+      reports: reports.map(r => ({ id: r.id, status: r.status }))
+    };
+  }
+
   @Get('api/project/:id/reports')
   async getProjectReportsAPI(@Param('id') id: string) {
     return { success: true };
@@ -222,8 +259,53 @@ export class ReportController {
 
     const totalPages = Math.ceil(total / pageSize);
 
+    // Get previous report for comparison
+    let previousReport = null;
+    let comparison = null;
+    if (report.projectId) {
+      previousReport = await this.prisma.report.findFirst({
+        where: {
+          projectId: report.projectId,
+          status: 'COMPLETED',
+          createdAt: { lt: report.createdAt }
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { issues: true } } }
+      });
+
+      if (previousReport) {
+        const prevStats = await this.getStatistics(previousReport.id);
+        comparison = {
+          previousReportId: previousReport.id,
+          previousDate: previousReport.createdAt,
+          previousTotal: previousReport._count.issues,
+          currentTotal: total,
+          diff: total - previousReport._count.issues,
+          diffPercent: previousReport._count.issues > 0 
+            ? ((total - previousReport._count.issues) / previousReport._count.issues * 100).toFixed(1)
+            : '0',
+          byType: stats.byType.map((current: any) => {
+            const prev = prevStats.byType.find((p: any) => p.key === current.key);
+            return {
+              ...current,
+              previousCount: prev?.count || 0,
+              diff: current.count - (prev?.count || 0)
+            };
+          }),
+          bySeverity: stats.bySeverity.map((current: any) => {
+            const prev = prevStats.bySeverity.find((p: any) => p.key === current.key);
+            return {
+              ...current,
+              previousCount: prev?.count || 0,
+              diff: current.count - (prev?.count || 0)
+            };
+          })
+        };
+      }
+    }
+
     return {
-      report, issues, stats,
+      report, issues, stats, comparison,
       sort: { by: sortBy, order: sortOrder },
       pagination: {
         page, pageSize, total, totalPages,

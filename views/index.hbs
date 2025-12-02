@@ -1,93 +1,221 @@
 {{!< layout}}
 
-<div class="flex justify-between items-center mb-6">
-  <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-    <span class="iconify text-indigo-600" data-icon="mdi:view-dashboard"></span>
+<!-- Analytics Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">Tổng Dự Án</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-slate-100 mt-2">{{analytics.totalProjects}}</p>
+      </div>
+      <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
+        <span class="iconify w-6 h-6 text-indigo-600 dark:text-indigo-300" data-icon="mdi:folder-multiple"></span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">Tổng Báo Cáo</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-slate-100 mt-2">{{analytics.totalReports}}</p>
+      </div>
+      <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+        <span class="iconify w-6 h-6 text-blue-600 dark:text-blue-300" data-icon="mdi:file-document-multiple"></span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">Tổng Issues</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-slate-100 mt-2">{{analytics.totalIssues}}</p>
+      </div>
+      <div class="w-12 h-12 bg-rose-100 dark:bg-rose-900 rounded-lg flex items-center justify-center">
+        <span class="iconify w-6 h-6 text-rose-600 dark:text-rose-300" data-icon="mdi:alert-circle"></span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">Đang Xử Lý</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-slate-100 mt-2">{{analytics.processingReports}}</p>
+      </div>
+      <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center">
+        <span class="iconify w-6 h-6 text-amber-600 dark:text-amber-300 animate-spin" data-icon="mdi:loading"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+  <h2 class="text-2xl font-bold text-gray-800 dark:text-slate-200 flex items-center gap-2">
+    <span class="iconify text-indigo-600 dark:text-indigo-400" data-icon="mdi:view-dashboard"></span>
     Dashboard Dự Án
   </h2>
-  <div class="flex gap-2">
-    <button onclick="openAddProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2">
-      <span class="iconify" data-icon="mdi:plus"></span> Thêm Dự Án
+  <div class="flex gap-2 w-full md:w-auto">
+    <!-- Search Bar -->
+    <div class="flex-1 md:flex-initial relative">
+      <input 
+        type="search" 
+        id="searchInput" 
+        placeholder="Tìm kiếm dự án (Ctrl+K)..." 
+        class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+      >
+      <span class="absolute left-3 top-1/2 transform -translate-y-1/2 iconify w-5 h-5 text-gray-400 dark:text-slate-500" data-icon="mdi:magnify"></span>
+    </div>
+    <button onclick="openAddProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 transition">
+      <span class="iconify" data-icon="mdi:plus"></span> <span class="hidden sm:inline">Thêm Dự Án</span>
     </button>
-    <a href="/settings" class="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium border border-gray-200 flex items-center gap-2">
-      <span class="iconify" data-icon="mdi:cog"></span> Cấu hình
+    <a href="/settings" class="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 px-4 py-2 rounded-lg font-medium border border-gray-200 dark:border-slate-700 flex items-center gap-2 transition">
+      <span class="iconify" data-icon="mdi:cog"></span> <span class="hidden sm:inline">Cấu hình</span>
     </a>
   </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <table class="w-full text-left text-sm text-gray-600">
-    <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-bold">
-    <tr>
-      <th class="px-6 py-4">Tên Dự Án</th>
-      <th class="px-6 py-4">Key</th>
-      <th class="px-6 py-4">Scan Gần Nhất</th>
-      <th class="px-6 py-4 text-center">Trạng thái</th>
-      <th class="px-6 py-4 text-right">Action</th>
-    </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-100">
-    {{#each projects}}
-      <tr class="hover:bg-gray-50 transition group">
-        <td class="px-6 py-4">
-          <a href="/project/{{this.id}}" class="font-bold text-gray-900 hover:text-indigo-600 text-base flex items-center gap-2">
-            <span class="iconify text-gray-400 group-hover:text-indigo-500" data-icon="mdi:folder-outline"></span>
-            {{this.name}}
-          </a>
-        </td>
-        <td class="px-6 py-4">
-                    <span class="font-mono text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 truncate max-w-[200px] block" title="{{this.key}}">
-                      {{this.key}}
-                    </span>
-        </td>
-        <td class="px-6 py-4 text-xs">{{this.lastScan}}</td>
-        <td class="px-6 py-4 text-center">
-          {{#if this.lastStatus}}
-            {{#if (eq this.lastStatus 'COMPLETED')}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Hoàn thành</span>
-            {{else}}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">{{this.lastStatus}}...</span>{{/if}}
-          {{else}}-{{/if}}
-        </td>
-        <td class="px-6 py-4 text-right">
-          <div class="flex items-center justify-end gap-2">
-            <a href="/project/{{this.id}}" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">Chi tiết</a>
-            <form action="/projects/delete" method="post" onsubmit="return confirm('Xóa?');" class="inline">
-              <input type="hidden" name="id" value="{{this.id}}">
-              <button class="text-gray-400 hover:text-red-500 p-1"><span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span></button>
-            </form>
-          </div>
-        </td>
+<div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+  <div id="projectsTableContainer">
+    <table id="projectsTable" class="w-full text-left text-sm text-gray-600 dark:text-slate-300">
+      <thead class="bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-slate-300 uppercase text-xs font-bold">
+      <tr>
+        <th class="px-6 py-4">Tên Dự Án</th>
+        <th class="px-6 py-4">Key</th>
+        <th class="px-6 py-4">Scan Gần Nhất</th>
+        <th class="px-6 py-4 text-center">Trạng thái</th>
+        <th class="px-6 py-4 text-right">Action</th>
       </tr>
-    {{/each}}
-    </tbody>
-  </table>
-  {{#unless projects}}<div class="p-10 text-center text-gray-400">Chưa có dự án nào.</div>{{/unless}}
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+      {{#each projects}}
+        <tr class="hover:bg-gray-50 dark:hover:bg-slate-700 transition group project-row" data-name="{{this.name}}" data-key="{{this.key}}">
+          <td class="px-6 py-4">
+            <a href="/project/{{this.id}}" class="font-bold text-gray-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 text-base flex items-center gap-2">
+              <span class="iconify text-gray-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400" data-icon="mdi:folder-outline"></span>
+              {{this.name}}
+            </a>
+          </td>
+          <td class="px-6 py-4">
+            <span class="font-mono text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800 truncate max-w-[200px] block" title="{{this.key}}">
+              {{this.key}}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-xs">{{this.lastScan}}</td>
+          <td class="px-6 py-4 text-center">
+            {{#if this.lastStatus}}
+              {{#if (eq this.lastStatus 'COMPLETED')}}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Hoàn thành</span>
+              {{else}}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">{{this.lastStatus}}...</span>
+              {{/if}}
+            {{else}}-{{/if}}
+          </td>
+          <td class="px-6 py-4 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="/project/{{this.id}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold hover:underline">Chi tiết</a>
+              <button onclick="deleteProject({{this.id}})" class="text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 p-1 transition">
+                <span class="iconify w-5 h-5" data-icon="mdi:trash-can-outline"></span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      {{/each}}
+      </tbody>
+    </table>
+    <div id="noResults" class="hidden p-10 text-center text-gray-400 dark:text-slate-500">
+      <span class="iconify w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-slate-600" data-icon="mdi:magnify"></span>
+      <p>Không tìm thấy dự án nào phù hợp</p>
+    </div>
+  </div>
+  {{#unless projects}}
+    <div class="p-10 text-center text-gray-400 dark:text-slate-500">
+      <span class="iconify w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" data-icon="mdi:folder-open-outline"></span>
+      <p class="mb-4">Chưa có dự án nào.</p>
+      <button onclick="openAddProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 mx-auto">
+        <span class="iconify" data-icon="mdi:plus"></span> Tạo Dự Án Đầu Tiên
+      </button>
+    </div>
+  {{/unless}}
 </div>
 
 <div id="addProjectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="closeAddProjectModal()"></div>
-  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">Thêm Dự Án Mới</h3>
+  <div class="absolute inset-0 bg-gray-900/60 dark:bg-slate-900/80 backdrop-blur-sm" onclick="closeAddProjectModal()"></div>
+  <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-slate-200 mb-4">Thêm Dự Án Mới</h3>
     <form action="/projects" method="post">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tên hiển thị</label>
-          <input type="text" name="name" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="VD: Core System" required>
+          <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Tên hiển thị</label>
+          <input type="text" name="name" class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="VD: Core System" required>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Sonar Project Key</label>
-          <input type="text" name="key" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm" placeholder="VD: org.company:project" required>
-          <p class="text-xs text-gray-500 mt-1">Copy chính xác Key từ SonarQube.</p>
+          <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Sonar Project Key</label>
+          <input type="text" name="key" class="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm" placeholder="VD: org.company:project" required>
+          <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Copy chính xác Key từ SonarQube.</p>
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-3">
-        <button type="button" onclick="closeAddProjectModal()" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium">Hủy</button>
-        <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-bold shadow-sm">Tạo Dự Án</button>
+        <button type="button" onclick="closeAddProjectModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 font-medium transition">Hủy</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm transition">Tạo Dự Án</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-  function openAddProjectModal() { document.getElementById('addProjectModal').classList.remove('hidden'); }
-  function closeAddProjectModal() { document.getElementById('addProjectModal').classList.add('hidden'); }
+  function openAddProjectModal() { 
+    document.getElementById('addProjectModal').classList.remove('hidden');
+    document.querySelector('#addProjectModal input[name="name"]')?.focus();
+  }
+  function closeAddProjectModal() { 
+    document.getElementById('addProjectModal').classList.add('hidden');
+  }
+  
+  function deleteProject(id) {
+    showConfirm('Xóa dự án', 'Bạn có chắc muốn xóa dự án này? Hành động này không thể hoàn tác.', () => {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/projects/delete';
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'id';
+      input.value = id;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  }
+
+  // Search functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    const projectRows = document.querySelectorAll('.project-row');
+    const noResults = document.getElementById('noResults');
+    const table = document.querySelector('#projectsTable tbody');
+
+    if (searchInput) {
+      const handleSearch = window.searchFilter?.debounce((e) => {
+        const term = e.target.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        projectRows.forEach(row => {
+          const name = row.dataset.name?.toLowerCase() || '';
+          const key = row.dataset.key?.toLowerCase() || '';
+          const matches = !term || name.includes(term) || key.includes(term);
+          
+          row.style.display = matches ? '' : 'none';
+          if (matches) visibleCount++;
+        });
+
+        if (table && noResults) {
+          table.style.display = visibleCount > 0 ? '' : 'none';
+          noResults.classList.toggle('hidden', visibleCount > 0);
+        }
+      }, 300);
+
+      searchInput.addEventListener('input', handleSearch);
+    }
+  });
 </script>
